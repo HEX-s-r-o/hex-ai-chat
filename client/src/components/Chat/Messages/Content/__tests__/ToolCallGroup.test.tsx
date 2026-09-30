@@ -4,6 +4,7 @@ import { Tools, Constants, ContentTypes } from 'librechat-data-provider';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { TAttachment, TMessageContentParts } from 'librechat-data-provider';
 import { FailedRevealContext, useFailedReveal } from '../reveal';
+import { useToolAutoExpand } from '../disclosure';
 import { scheduleMessageContentLayoutReconcile } from '~/hooks';
 import ToolCallGroup from '../ToolCallGroup';
 import { ToolAuthWarning } from '../auth';
@@ -1382,5 +1383,33 @@ describe('ToolCallGroup failure fast path', () => {
     fireEvent.click(header);
     expect(header).toHaveClass('text-text-primary');
     expect(screen.getByTestId('tool-call-group-panel').firstElementChild).toHaveClass('pl-6');
+  });
+});
+
+describe('ToolCallGroup sole tool', () => {
+  function Probe({ idx }: { idx: number }) {
+    return <div data-testid={`probe-${idx}`}>{String(useToolAutoExpand())}</div>;
+  }
+  const props = (ids: string[]) =>
+    ({
+      parts: ids.map((id, idx) => ({ part: makePart(id), idx })),
+      isSubmitting: false,
+      isLast: false,
+      showThinking: false,
+      lastContentIdx: ids.length - 1,
+      renderPart: (_p: TMessageContentParts, idx: number) => <Probe key={idx} idx={idx} />,
+    }) satisfies React.ComponentProps<typeof ToolCallGroup>;
+
+  it('opens the only tool call inside the group by default', () => {
+    renderGroup(props(['only']));
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    expect(screen.getByTestId('probe-0')).toHaveTextContent('true');
+  });
+
+  it('leaves calls collapsed when the group holds more than one', () => {
+    renderGroup(props(['a', 'b']));
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    expect(screen.getByTestId('probe-0')).toHaveTextContent('false');
+    expect(screen.getByTestId('probe-1')).toHaveTextContent('false');
   });
 });
