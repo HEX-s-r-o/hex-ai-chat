@@ -37,7 +37,7 @@ router.use('/tools', configMiddleware, tools);
  * Get all agent categories with counts
  * @route GET /agents/categories
  */
-router.get('/categories', v1.getAgentCategories);
+router.get('/categories', configMiddleware, v1.getAgentCategories);
 /**
  * Creates an agent.
  * @route POST /agents
