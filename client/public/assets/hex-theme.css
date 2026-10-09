@@ -1,97 +1,98 @@
 /* HEX brand theme override for LibreChat v0.8.8
-   Crimson #a13c58 (161 60 88), Near-black #18181b (24 24 27), White #ffffff */
+   Crimson #a13c58 (161 60 88), Near-black #18181b (24 24 27), White #ffffff
+   Using !important so stylesheet overrides inline style declarations set by ThemeProvider. */
 
 :root {
   /* Primary accent — send button, links, focus rings, avatars */
-  --accent-primary: 161 60 88;
-  --accent-primary-hover: 133 40 65;
+  --accent-primary: 161 60 88 !important;
+  --accent-primary-hover: 133 40 65 !important;
 
   /* Send / submit button */
-  --surface-submit: 161 60 88;
-  --surface-submit-hover: 133 40 65;
+  --surface-submit: 161 60 88 !important;
+  --surface-submit-hover: 133 40 65 !important;
 
   /* Core surfaces */
-  --surface-primary: 255 255 255;
-  --surface-primary-alt: 250 250 250;
-  --surface-primary-contrast: 244 244 245;
+  --surface-primary: 255 255 255 !important;
+  --surface-primary-alt: 248 238 242 !important;
+  --surface-primary-contrast: 243 230 234 !important;
 
-  /* Main background / canvas: soft crimson-tinted glass blush (#fdf6f8) */
-  --surface-canvas: 253 246 248;
-  --surface-chat: 255 255 255;
-  --surface-user-message: 248 240 243; /* slightly deeper blush for user bubble */
+  /* Main background / canvas: Light mode 248 238 242 */
+  --surface-canvas: 248 238 242 !important;
+  --surface-chat: 255 255 255 !important;
+  --surface-user-message: 243 230 234 !important;
 
   /* Text */
-  --text-primary: 24 24 27;
-  --text-secondary: 63 63 70;
-  --text-muted: 113 113 122;
+  --text-primary: 24 24 27 !important;
+  --text-secondary: 63 63 70 !important;
+  --text-muted: 113 113 122 !important;
 
   /* Borders & focus */
-  --border-light: 243 230 234; /* subtle crimson tint on hairlines */
-  --border-medium: 230 210 216;
-  --border-control: 161 60 88;
-  --focus-control: 161 60 88;
-  --ring-primary: 161 60 88;
-  --focus-outline: 24 24 27;
+  --border-light: 235 220 225 !important;
+  --border-medium: 220 200 206 !important;
+  --border-control: 161 60 88 !important;
+  --focus-control: 161 60 88 !important;
+  --ring-primary: 161 60 88 !important;
+  --focus-outline: 24 24 27 !important;
 
   /* Avatar / brand */
-  --avatar-fill: 161 60 88;
-  --brand-purple: 161 60 88;
+  --avatar-fill: 161 60 88 !important;
+  --brand-purple: 161 60 88 !important;
 
   /* Header */
-  --header-primary: 253 246 248;
-  --header-hover: 248 238 242;
-  --header-button-hover: 243 230 234;
+  --header-primary: 248 238 242 !important;
+  --header-hover: 243 230 234 !important;
+  --header-button-hover: 235 220 225 !important;
 
   /* Radii — squarer, more professional */
-  --theme-control-radius: 0.375rem;
-  --theme-surface-radius: 0.625rem;
-  --theme-large-surface-radius: 0.875rem;
-  --theme-menu-radius: 0.5rem;
+  --theme-control-radius: 0.375rem !important;
+  --theme-surface-radius: 0.625rem !important;
+  --theme-large-surface-radius: 0.875rem !important;
+  --theme-menu-radius: 0.5rem !important;
 }
 
 .dark {
-  /* Dark mode surfaces — deep slate-charcoal with subtle crimson warmth */
-  --surface-primary: 20 18 20;
-  --surface-primary-alt: 26 23 26;
-  --surface-primary-contrast: 35 30 35;
-  --surface-secondary: 26 23 26;
-  --surface-tertiary: 42 36 42;
-  --surface-chat: 35 30 35;
-  --surface-canvas: 24 20 24; /* dark crimson-tinged canvas */
-  --surface-user-message: 45 36 45;
+  /* Dark mode surfaces — requested Dark mode 89 34 49 canvas */
+  --surface-primary: 59 19 30 !important;
+  --surface-primary-alt: 69 24 37 !important;
+  --surface-primary-contrast: 79 29 42 !important;
+  --surface-secondary: 69 24 37 !important;
+  --surface-tertiary: 79 29 42 !important;
+  --surface-chat: 89 34 49 !important;
+  --surface-canvas: 89 34 49 !important; /* dark crimson maroon canvas */
+  --surface-user-message: 109 44 64 !important;
 
   /* Text */
-  --text-primary: 250 250 250;
-  --text-secondary: 161 161 170;
-  --text-muted: 113 113 122;
+  --text-primary: 250 250 250 !important;
+  --text-secondary: 215 190 200 !important;
+  --text-muted: 175 145 158 !important;
 
-  /* Accent — muted rose for dark backgrounds */
-  --accent-primary: 205 109 130;
-  --accent-primary-hover: 225 140 158;
+  /* Accent — light pink/rose for dark backgrounds */
+  --accent-primary: 225 140 158 !important;
+  --accent-primary-hover: 245 160 178 !important;
 
-  /* Submit button — keep crimson for legibility */
-  --surface-submit: 161 60 88;
-  --surface-submit-hover: 133 40 65;
+  /* Submit button */
+  --surface-submit: 161 60 88 !important;
+  --surface-submit-hover: 181 80 108 !important;
 
   /* Borders & focus */
-  --border-light: 45 38 45;
-  --border-medium: 60 50 60;
-  --border-control: 45 38 45;
-  --focus-control: 205 109 130;
-  --ring-primary: 205 109 130;
-  --focus-outline: 250 250 250;
+  --border-light: 109 44 64 !important;
+  --border-medium: 129 54 79 !important;
+  --border-control: 109 44 64 !important;
+  --focus-control: 225 140 158 !important;
+  --ring-primary: 225 140 158 !important;
+  --focus-outline: 250 250 250 !important;
 
   /* Header */
-  --header-primary: 26 23 26;
-  --header-hover: 35 30 35;
-  --header-button-hover: 42 36 42;
+  --header-primary: 59 19 30 !important;
+  --header-hover: 79 29 42 !important;
+  --header-button-hover: 89 34 49 !important;
 
   /* Avatar / brand */
-  --avatar-fill: 205 109 130;
-  --brand-purple: 205 109 130;
+  --avatar-fill: 225 140 158 !important;
+  --brand-purple: 225 140 158 !important;
 
   /* Chat */
-  --surface-card: 26 23 26;
-  --surface-menu: 35 30 35;
-  --surface-popover: 35 30 35;
+  --surface-card: 59 19 30 !important;
+  --surface-menu: 79 29 42 !important;
+  --surface-popover: 79 29 42 !important;
 }
