@@ -2228,22 +2228,56 @@ const revertAgentVersionHandler = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+const buildCategoriesFromConfig = (interfaceConfig) => {
+  const configured = interfaceConfig?.marketplace?.agentCategories;
+  if (!configured || !Array.isArray(configured) || configured.length === 0) {
+    return null;
+  }
+  return configured.map((cat, index) => ({
+    value: cat.value,
+    label: cat.label,
+    description: cat.description || '',
+    count: 0,
+    order: cat.order ?? index,
+    custom: true,
+  })).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+};
+
 /**
  * Get all agent categories with counts
  *
- * @param {Object} _req - Express request object (unused)
+ * @param {Object} req - Express request object
  * @param {Object} res - Express response object
  */
-const getAgentCategories = async (_req, res) => {
+const getAgentCategories = async (req, res) => {
   try {
-    const [categories, promotedCount] = await Promise.all([
-      db.getCategoriesWithCounts(),
-      db.countPromotedAgents(),
-    ]);
+    const configCategories = buildCategoriesFromConfig(req.config?.interfaceConfig);
+    
+    let categories;
+    let promotedCount = 0;
+
+    if (configCategories) {
+      categories = configCategories;
+      // still count promoted if any
+      promotedCount = await db.countPromotedAgents();
+    } else {
+      const [dbCategories, count] = await Promise.all([
+        db.getCategoriesWithCounts(),
+        db.countPromotedAgents(),
+      ]);
+      categories = dbCategories.map((category) => ({
+        value: category.value,
+        label: category.label,
+        count: category.agentCount,
+        description: category.description,
+      }));
+      promotedCount = count;
+    }
+
     const formattedCategories = categories.map((category) => ({
       value: category.value,
       label: category.label,
-      count: category.agentCount,
+      count: category.count,
       description: category.description,
     }));
 
