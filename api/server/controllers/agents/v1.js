@@ -2292,7 +2292,17 @@ const getAgentCategories = async (req, res) => {
   try {
     const includeInactive = req.query.includeInactive === 'true';
     const configCategories = buildCategoriesFromConfig(req.config?.interfaceConfig);
-    const dbCategories = await db.getAllCategoriesWithCounts();
+    
+    // Get active categories with counts, and all categories if includeInactive is true
+    const activeWithCounts = await db.getCategoriesWithCounts();
+    const allCategories = includeInactive ? await db.getAllCategories() : activeWithCounts;
+    
+    const countMap = new Map(activeWithCounts.map((c) => [c.value, c.agentCount]));
+    const dbCategories = allCategories.map((cat) => ({
+      ...cat,
+      agentCount: countMap.get(cat.value) || 0,
+    }));
+
     const promotedCount = await db.countPromotedAgents();
 
     // Merge with precedence
