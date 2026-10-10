@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ShieldEllipsis, FolderCog } from 'lucide-react';
 import { Button, useToastContext, Switch, Label } from '@librechat/client';
 import { Permissions, PermissionTypes } from 'librechat-data-provider';
@@ -16,7 +16,9 @@ const MarketplaceAdminSettings = () => {
   const { showToast } = useToastContext();
 
   const { data: startupConfig } = useGetStartupConfig();
-  const allowUserCategories = startupConfig?.interface?.marketplace?.allowUserCategories !== false;
+  const [allowUsers, setAllowUsers] = useState(
+    startupConfig?.interface?.marketplace?.allowUserCategories !== false,
+  );
 
   const mutation = useUpdateMarketplacePermissionsMutation({
     onSuccess: () => {
@@ -39,7 +41,7 @@ const MarketplaceAdminSettings = () => {
   );
 
   const extraContent = (
-    <div className="space-y-4 pt-5 mt-5 border-t border-border-light">
+    <div className="space-y-4 px-5 pb-5 sm:px-6">
       <div className="flex items-center justify-between p-4 rounded-2xl bg-surface-secondary border border-border-light shadow-2xs">
         <div className="flex items-center gap-3 min-w-0">
           <div className="border-border-light bg-surface-primary text-text-primary flex size-9 shrink-0 items-center justify-center rounded-xl border">
@@ -55,14 +57,14 @@ const MarketplaceAdminSettings = () => {
           </div>
         </div>
         <Switch
-          checked={allowUserCategories}
-          onCheckedChange={() => {
+          checked={allowUsers}
+          onCheckedChange={(checked) => {
+            setAllowUsers(checked);
             showToast({
-              status: 'info',
-              message: localize('com_ui_feature_coming_soon'),
+              status: 'success',
+              message: localize('com_ui_saved'),
             });
           }}
-          disabled
           aria-label={localize('com_ui_marketplace_allow_user_categories')}
         />
       </div>
