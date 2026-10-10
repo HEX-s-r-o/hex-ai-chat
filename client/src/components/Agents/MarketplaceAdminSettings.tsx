@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { ShieldEllipsis, FolderCog } from 'lucide-react';
 import { Button, useToastContext, Switch, Label } from '@librechat/client';
-import { Permissions, PermissionTypes } from 'librechat-data-provider';
+import { Permissions, PermissionTypes, SystemRoles } from 'librechat-data-provider';
 import type { PermissionConfig } from '~/components/ui';
 import { useUpdateMarketplacePermissionsMutation, useGetStartupConfig } from '~/data-provider';
 import { AdminSettingsDialog } from '~/components/ui';
-import { useLocalize } from '~/hooks';
+import { useLocalize, useAuthContext } from '~/hooks';
 
 const permissions: PermissionConfig[] = [
   { permission: Permissions.USE, labelKey: 'com_ui_marketplace_allow_use' },
@@ -14,6 +14,7 @@ const permissions: PermissionConfig[] = [
 const MarketplaceAdminSettings = () => {
   const localize = useLocalize();
   const { showToast } = useToastContext();
+  const { user } = useAuthContext();
 
   const { data: startupConfig } = useGetStartupConfig();
   const [allowUsers, setAllowUsers] = useState(
@@ -40,15 +41,18 @@ const MarketplaceAdminSettings = () => {
     </Button>
   );
 
-  const extraContent = (
-    <div className="space-y-4 px-5 pb-5 sm:px-6">
+  // Only admins see the category management configuration toggle
+  const isAdmin = user?.role === SystemRoles.ADMIN;
+
+  const extraContent = isAdmin ? (
+    <div className="space-y-4 pt-5 mt-5 border-t border-border-light">
       <div className="flex items-center justify-between p-4 rounded-2xl bg-surface-secondary border border-border-light shadow-2xs">
         <div className="flex items-center gap-3 min-w-0">
           <div className="border-border-light bg-surface-primary text-text-primary flex size-9 shrink-0 items-center justify-center rounded-xl border">
             <FolderCog className="size-4" aria-hidden="true" />
           </div>
           <div className="flex flex-col gap-0.5 min-w-0">
-            <Label className="text-sm font-semibold text-text-primary truncate">
+            <Label className="text-sm font-semibold text-text-primary truncate cursor-pointer">
               {localize('com_ui_marketplace_allow_user_categories')}
             </Label>
             <p className="text-xs text-text-secondary truncate">
@@ -69,7 +73,7 @@ const MarketplaceAdminSettings = () => {
         />
       </div>
     </div>
-  );
+  ) : null;
 
   return (
     <AdminSettingsDialog
