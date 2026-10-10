@@ -293,6 +293,7 @@ const AdminSettingsDialog: React.FC<AdminSettingsDialogProps> = ({
               </div>
             </div>
 
+          {extraContent}
             <OGDialogFooter className="bg-transparent px-4 py-4 sm:px-6">
               <Button
                 type="submit"
