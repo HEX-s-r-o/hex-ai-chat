@@ -40,34 +40,22 @@ router.use('/tools', configMiddleware, tools);
 router.get('/categories', configMiddleware, v1.getAgentCategories);
 
 /**
- * Create a new category (admin only)
+ * Create a new category
  * @route POST /agents/categories
  */
-router.post('/categories', configMiddleware, generateCheckAccess({
-  permissionType: PermissionTypes.MARKETPLACE,
-  permissions: [Permissions.USE, Permissions.CREATE],
-  getRoleByName,
-}), v1.createCategory);
+router.post('/categories', configMiddleware, checkAgentCreate, v1.createCategory);
 
 /**
- * Update a category (admin only)
+ * Update a category
  * @route PATCH /agents/categories/:value
  */
-router.patch('/categories/:value', configMiddleware, generateCheckAccess({
-  permissionType: PermissionTypes.MARKETPLACE,
-  permissions: [Permissions.USE, Permissions.EDIT],
-  getRoleByName,
-}), v1.updateCategory);
+router.patch('/categories/:value', configMiddleware, checkAgentCreate, v1.updateCategory);
 
 /**
- * Delete a category (admin only)
+ * Delete a category
  * @route DELETE /agents/categories/:value
  */
-router.delete('/categories/:value', configMiddleware, generateCheckAccess({
-  permissionType: PermissionTypes.MARKETPLACE,
-  permissions: [Permissions.USE, Permissions.DELETE],
-  getRoleByName,
-}), v1.deleteCategory);
+router.delete('/categories/:value', configMiddleware, checkAgentCreate, v1.deleteCategory);
 
 /**
  * Creates an agent.
