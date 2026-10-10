@@ -315,24 +315,30 @@ export function CategoriesManager({
                   )}>
                     {cat.isActive === false ? localize('com_ui_hidden') : localize('com_ui_active')}
                   </span>
-                  <Button
-                    size="icon-sm"
-                    variant="ghost"
-                    className="size-8 text-text-secondary hover:text-text-primary hover:bg-surface-hover"
-                    onClick={() => handleEditCategory(cat)}
-                    aria-label={localize('com_ui_edit_category')}
-                  >
-                    <Edit2 className="size-4" />
-                  </Button>
-                  <Button
-                    size="icon-sm"
-                    variant="ghost"
-                    className="size-8 text-text-secondary hover:text-red-500 hover:bg-red-500/10"
-                    onClick={() => handleDeleteCategory(cat.value)}
-                    aria-label={localize('com_ui_delete_category')}
-                  >
-                    <Trash2 className="size-4" />
-                  </Button>
+                  {cat.source === 'yaml' ? (
+                    <span className="text-xs text-text-muted italic px-2">Managed in YAML</span>
+                  ) : (
+                    <>
+                      <Button
+                        size="icon-sm"
+                        variant="ghost"
+                        className="size-8 text-text-secondary hover:text-text-primary hover:bg-surface-hover"
+                        onClick={() => handleEditCategory(cat)}
+                        aria-label={localize('com_ui_edit_category')}
+                      >
+                        <Edit2 className="size-4" />
+                      </Button>
+                      <Button
+                        size="icon-sm"
+                        variant="ghost"
+                        className="size-8 text-text-secondary hover:text-red-500 hover:bg-red-500/10"
+                        onClick={() => handleDeleteCategory(cat.value)}
+                        aria-label={localize('com_ui_delete_category')}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             ))}
