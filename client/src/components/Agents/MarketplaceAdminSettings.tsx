@@ -6,7 +6,6 @@ import type { PermissionConfig } from '~/components/ui';
 import { useUpdateMarketplacePermissionsMutation, useGetStartupConfig } from '~/data-provider';
 import { AdminSettingsDialog } from '~/components/ui';
 import { useLocalize } from '~/hooks';
-import CategoriesManager from './CategoriesManager';
 
 const permissions: PermissionConfig[] = [
   { permission: Permissions.USE, labelKey: 'com_ui_marketplace_allow_use' },
@@ -40,8 +39,7 @@ const MarketplaceAdminSettings = () => {
   );
 
   const extraContent = (
-    <div className="space-y-6 pt-5 mt-5 border-t border-border-light">
-      {/* Category Management Header / Toggle Section */}
+    <div className="space-y-4 pt-5 mt-5 border-t border-border-light">
       <div className="flex items-center justify-between p-4 rounded-2xl bg-surface-secondary border border-border-light shadow-2xs">
         <div className="flex items-center gap-3 min-w-0">
           <div className="border-border-light bg-surface-primary text-text-primary flex size-9 shrink-0 items-center justify-center rounded-xl border">
@@ -66,15 +64,6 @@ const MarketplaceAdminSettings = () => {
           }}
           disabled
           aria-label={localize('com_ui_marketplace_allow_user_categories')}
-        />
-      </div>
-
-      {/* Embedded Categories Manager */}
-      <div className="border border-border-light rounded-2xl bg-surface-primary overflow-hidden shadow-sm">
-        <CategoriesManager
-          title={localize('com_agents_categories')}
-          personalOnly={false}
-          standalone={true}
         />
       </div>
     </div>
