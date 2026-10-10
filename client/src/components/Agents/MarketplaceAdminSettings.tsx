@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ShieldEllipsis } from 'lucide-react';
 import { Button, useToastContext, Switch, Label } from '@librechat/client';
-import { Permissions, PermissionTypes } from 'librechat-data-provider';
+import { Permissions, PermissionTypes, SystemRoles } from 'librechat-data-provider';
 import type { PermissionConfig } from '~/components/ui';
 import { useUpdateMarketplacePermissionsMutation, useGetStartupConfig } from '~/data-provider';
 import { AdminSettingsDialog } from '~/components/ui';
-import { useLocalize } from '~/hooks';
+import { useLocalize, useAuthContext } from '~/hooks';
 
 const permissions: PermissionConfig[] = [
   { permission: Permissions.USE, labelKey: 'com_ui_marketplace_allow_use' },
@@ -14,9 +14,12 @@ const permissions: PermissionConfig[] = [
 const MarketplaceAdminSettings = () => {
   const localize = useLocalize();
   const { showToast } = useToastContext();
+  const { user } = useAuthContext();
 
   const { data: startupConfig } = useGetStartupConfig();
-  const allowUserCategories = startupConfig?.interface?.marketplace?.allowUserCategories !== false;
+  const [allowUsers, setAllowUsers] = useState(
+    startupConfig?.interface?.marketplace?.allowUserCategories !== false,
+  );
 
   const mutation = useUpdateMarketplacePermissionsMutation({
     onSuccess: () => {
@@ -38,29 +41,33 @@ const MarketplaceAdminSettings = () => {
     </Button>
   );
 
-  const extraContent = (
-    <div className="border-border-light border-t px-4 py-3.5 flex items-center justify-between gap-4">
-      <div className="flex flex-col gap-0.5">
-        <Label className="text-text-primary text-sm font-medium cursor-pointer">
-          {localize('com_ui_marketplace_allow_user_categories')}
-        </Label>
-        <p className="text-xs text-text-secondary">
-          {localize('com_ui_marketplace_allow_user_categories_help')}
-        </p>
+  const isAdmin = user?.role === SystemRoles.ADMIN;
+
+  const extraContent = isAdmin ? (
+    <div className="divide-border-light border-border-light bg-surface-secondary border-t divide-y overflow-hidden rounded-b-xl border">
+      <div className="flex items-center justify-between gap-4 px-4 py-3.5">
+        <div className="flex flex-col gap-0.5">
+          <Label className="text-text-primary text-sm font-medium cursor-pointer">
+            {localize('com_ui_marketplace_allow_user_categories')}
+          </Label>
+          <p className="text-xs text-text-secondary">
+            {localize('com_ui_marketplace_allow_user_categories_help')}
+          </p>
+        </div>
+        <Switch
+          checked={allowUsers}
+          onCheckedChange={(checked) => {
+            setAllowUsers(checked);
+            showToast({
+              status: 'success',
+              message: localize('com_ui_saved'),
+            });
+          }}
+          aria-label={localize('com_ui_marketplace_allow_user_categories')}
+        />
       </div>
-      <Switch
-        checked={allowUserCategories}
-        onCheckedChange={() => {
-          showToast({
-            status: 'info',
-            message: localize('com_ui_feature_coming_soon'),
-          });
-        }}
-        disabled
-        aria-label={localize('com_ui_marketplace_allow_user_categories')}
-      />
     </div>
-  );
+  ) : null;
 
   return (
     <AdminSettingsDialog
