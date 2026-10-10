@@ -24,6 +24,8 @@ interface CategoriesManagerProps {
   showCreateButton?: boolean;
   /** Called when categories change (for parent to refresh) */
   onCategoriesChange?: () => void;
+  /** If true, render content without Dialog wrapper (for use in extraContent) */
+  standalone?: boolean;
 }
 
 export function CategoriesManager({
@@ -31,6 +33,7 @@ export function CategoriesManager({
   title,
   showCreateButton = true,
   onCategoriesChange,
+  standalone = false,
 }: CategoriesManagerProps) {
   const localize = useLocalize();
   const { showToast } = useToastContext();
@@ -188,12 +191,19 @@ export function CategoriesManager({
     return true;
   });
 
-  return (
-    <DialogContent className="w-11/12 max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
-      <DialogHeader>
-        <DialogTitle>{title || localize('com_agents_categories')}</DialogTitle>
-        <DialogDescription>{localize('com_agents_categories_description')}</DialogDescription>
-      </DialogHeader>
+  const content = (
+    <div className="w-11/12 max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+      {standalone ? (
+        <div className="px-6 pt-6 pb-4 border-b border-border-light">
+          <h2 className="text-lg font-semibold text-text-primary">{title || localize('com_agents_categories')}</h2>
+          <p className="text-sm text-text-secondary mt-1">{localize('com_agents_categories_description')}</p>
+        </div>
+      ) : (
+        <DialogHeader>
+          <DialogTitle>{title || localize('com_agents_categories')}</DialogTitle>
+          <DialogDescription>{localize('com_agents_categories_description')}</DialogDescription>
+        </DialogHeader>
+      )}
       <div className="space-y-4 py-4 overflow-y-auto flex-1 min-h-0 pr-1">
         <div className="flex items-center justify-between">
           {showCreateButton && !editingCategory && !isCreating && (
@@ -348,7 +358,27 @@ export function CategoriesManager({
           </div>
         )}
       </div>
-    </DialogContent>
+    </div>
+  );
+
+  if (standalone) {
+    return content;
+  }
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button
+          size="icon-sm"
+          variant="outline"
+          className="size-9 shrink-0 transition-none"
+          aria-label={localize('com_agents_categories')}
+        >
+          <FolderOpen className="size-4" aria-hidden="true" />
+        </Button>
+      </DialogTrigger>
+      {content}
+    </Dialog>
   );
 }
 

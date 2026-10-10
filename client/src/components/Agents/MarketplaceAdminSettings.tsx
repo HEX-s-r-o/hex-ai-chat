@@ -42,35 +42,29 @@ const MarketplaceAdminSettings = () => {
   );
 
   const extraContent = (
-    <>
-      <div className="border-border-light border-t pt-4 mt-4">
-        <div className="flex items-center justify-between p-3">
-          <div className="flex flex-col gap-1">
-            <Label className="text-sm font-medium text-text-primary">
-              {localize('com_ui_marketplace_allow_user_categories')}
-            </Label>
-            <p className="text-xs text-text-secondary">
-              {localize('com_ui_marketplace_allow_user_categories_help')}
-            </p>
-          </div>
-          <Switch
-            checked={allowUserCategories}
-            onCheckedChange={() => {
-              showToast({
-                status: 'info',
-                message: localize('com_ui_feature_coming_soon'),
-              });
-            }}
-            disabled
-            aria-label={localize('com_ui_marketplace_allow_user_categories')}
-          />
+    <div className="border-border-light border-t pt-4 mt-4">
+      <div className="flex items-center justify-between p-3">
+        <div className="flex flex-col gap-1">
+          <Label className="text-sm font-medium text-text-primary">
+            {localize('com_ui_marketplace_allow_user_categories')}
+          </Label>
+          <p className="text-xs text-text-secondary">
+            {localize('com_ui_marketplace_allow_user_categories_help')}
+          </p>
         </div>
+        <Switch
+          checked={allowUserCategories}
+          onCheckedChange={() => {
+            showToast({
+              status: 'info',
+              message: localize('com_ui_feature_coming_soon'),
+            });
+          }}
+          disabled
+          aria-label={localize('com_ui_marketplace_allow_user_categories')}
+        />
       </div>
-      <CategoriesManager
-        title={localize('com_agents_categories')}
-        personalOnly={false}
-      />
-    </>
+    </div>
   );
 
   return (
