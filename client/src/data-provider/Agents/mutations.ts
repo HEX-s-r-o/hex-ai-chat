@@ -491,3 +491,71 @@ export const useRevertAgentVersionMutation = (
 export const invalidateAgentMarketplaceQueries = (queryClient: QueryClient) => {
   queryClient.invalidateQueries([QueryKeys.marketplaceAgents]);
 };
+
+/**
+ * Hook for creating a new category
+ */
+export const useCreateAgentCategoryMutation = (
+  options?: t.CreateAgentCategoryOptions,
+): UseMutationResult<t.TMarketplaceCategory, Error, t.AgentCategoryCreateParams> => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    (newCategory: t.AgentCategoryCreateParams) => dataService.createAgentCategory(newCategory),
+    {
+      onMutate: (variables) => options?.onMutate?.(variables),
+      onError: (error, variables, context) => options?.onError?.(error, variables, context),
+      onSuccess: (newCategory, variables, context) => {
+        queryClient.invalidateQueries([QueryKeys.agentCategories]);
+        invalidateAgentMarketplaceQueries(queryClient);
+        return options?.onSuccess?.(newCategory, variables, context);
+      },
+    },
+  );
+};
+
+/**
+ * Hook for updating a category
+ */
+export const useUpdateAgentCategoryMutation = (
+  options?: t.UpdateAgentCategoryOptions,
+): UseMutationResult<t.TMarketplaceCategory, Error, { value: string; data: t.AgentCategoryUpdateParams }> => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    ({ value, data }: { value: string; data: t.AgentCategoryUpdateParams }) =>
+      dataService.updateAgentCategory({ value, data }),
+    {
+      onMutate: (variables) => options?.onMutate?.(variables),
+      onError: (error, variables, context) => options?.onError?.(error, variables, context),
+      onSuccess: (updatedCategory, variables, context) => {
+        queryClient.invalidateQueries([QueryKeys.agentCategories]);
+        invalidateAgentMarketplaceQueries(queryClient);
+        return options?.onSuccess?.(updatedCategory, variables, context);
+      },
+    },
+  );
+};
+
+/**
+ * Hook for deleting a category
+ */
+export const useDeleteAgentCategoryMutation = (
+  options?: t.DeleteAgentCategoryOptions,
+): UseMutationResult<void, Error, string> => {
+  const queryClient = useQueryClient();
+  return useMutation(
+    (value: string) => dataService.deleteAgentCategory({ value }),
+    {
+      onMutate: (variables) => options?.onMutate?.(variables),
+      onError: (error, variables, context) => options?.onError?.(error, variables, context),
+      onSuccess: (_data, variables, context) => {
+        queryClient.invalidateQueries([QueryKeys.agentCategories]);
+        invalidateAgentMarketplaceQueries(queryClient);
+        return options?.onSuccess?.(_data, variables, context);
+      },
+    },
+  );
+};
+
+export const invalidateAgentMarketplaceQueries = (queryClient: QueryClient) => {
+  queryClient.invalidateQueries([QueryKeys.marketplaceAgents]);
+};
