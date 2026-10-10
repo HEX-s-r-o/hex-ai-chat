@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Plus, Trash2, Edit2, X, Save, Loader2 } from 'lucide-react';
-import { Button, useToastContext, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Input, Textarea, Label, Badge } from '@librechat/client';
+import { Plus, Trash2, Edit2, X, Save, Loader2, FolderOpen } from 'lucide-react';
+import { Button, useToastContext, Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, Input, Textarea, Label, Badge } from '@librechat/client';
 import { useGetAgentCategoriesQuery, useCreateAgentCategoryMutation, useUpdateAgentCategoryMutation, useDeleteAgentCategoryMutation } from '~/data-provider';
 import { useLocalize } from '~/hooks';
 import { cn } from '~/utils';
@@ -16,8 +16,6 @@ const initialCategoryForm = {
 interface CategoriesManagerProps {
   /** If true, only show categories the current user created (for personal categories) */
   personalOnly?: boolean;
-  /** Custom trigger element. If not provided, renders nothing (use as child of Dialog) */
-  trigger?: React.ReactNode;
   /** Title override */
   title?: string;
   /** Whether to show the "Create Category" button */
@@ -28,7 +26,6 @@ interface CategoriesManagerProps {
 
 export function CategoriesManager({
   personalOnly = false,
-  trigger,
   title,
   showCreateButton = true,
   onCategoriesChange,
@@ -141,9 +138,9 @@ export function CategoriesManager({
       default: 'bg-surface-tertiary text-text-secondary',
     };
     const labels = {
-      user: localize('com_ui_category_source_user'),
-      yaml: localize('com_ui_category_source_yaml'),
-      default: localize('com_ui_category_source_default'),
+      user: localize('com_ui_category_source_user') || 'Custom',
+      yaml: localize('com_ui_category_source_yaml') || 'Config',
+      default: localize('com_ui_category_source_default') || 'Default',
     };
     return (
       <Badge variant="outline" className={cn(variants[source], 'text-xs')}>
@@ -153,188 +150,185 @@ export function CategoriesManager({
   };
 
   const filteredCategories = (categories || []).filter((cat) => {
-    // Skip system categories
     if (cat.value === 'promoted' || cat.value === 'all') return false;
-    // If personalOnly, only show user-created categories
     if (personalOnly && cat.source !== 'user') return false;
     return true;
   });
 
-  const dialogContent = (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <DialogTitle className="text-lg">
-          {title || localize('com_agents_categories')}
-        </DialogTitle>
-        {showCreateButton && !editingCategory && !isCreating && (
-          <Button size="sm" variant="outline" onClick={handleCreateCategory}>
-            <Plus className="size-4 mr-2" />
-            {localize('com_ui_add_category')}
-          </Button>
-        )}
-      </div>
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button
+          size="icon-sm"
+          variant="outline"
+          className="size-9 shrink-0 transition-none"
+          aria-label={localize('com_agents_categories')}
+        >
+          <FolderOpen className="size-4" aria-hidden="true" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="w-11/12 max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>{title || localize('com_agents_categories')}</DialogTitle>
+          <DialogDescription>{localize('com_agents_categories_description')}</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="flex items-center justify-between">
+            {showCreateButton && !editingCategory && !isCreating && (
+              <Button size="sm" variant="outline" onClick={handleCreateCategory}>
+                <Plus className="size-4 mr-2" />
+                {localize('com_ui_add_category')}
+              </Button>
+            )}
+          </div>
 
-      {editingCategory && (
-        <form onSubmit={handleSubmitCategory} className="space-y-4 p-4 border-border-light border rounded-theme-surface bg-surface-secondary">
-          <DialogTitle className="text-base">
-            {isCreating ? localize('com_ui_create_category') : localize('com_ui_edit_category')}
-          </DialogTitle>
-          <div className="space-y-3">
-            <div>
-              <Label htmlFor="category-value">{localize('com_ui_category_value')}</Label>
-              <Input
-                id="category-value"
-                value={editingCategory.value}
-                onChange={(e) => setEditingCategory({ ...editingCategory, value: e.target.value })}
-                placeholder="regulatory"
-                disabled={!isCreating}
-                className="mt-1"
-                required
-              />
-              <p className="text-xs text-text-muted mt-1">{localize('com_ui_category_value_help')}</p>
-            </div>
-            <div>
-              <Label htmlFor="category-label">{localize('com_ui_category_label')}</Label>
-              <Input
-                id="category-label"
-                value={editingCategory.label}
-                onChange={(e) => setEditingCategory({ ...editingCategory, label: e.target.value })}
-                placeholder="Regulatory"
-                className="mt-1"
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="category-description">{localize('com_ui_category_description')}</Label>
-              <Textarea
-                id="category-description"
-                value={editingCategory.description}
-                onChange={(e) => setEditingCategory({ ...editingCategory, description: e.target.value })}
-                placeholder="EU/UK compliance agents"
-                className="mt-1 min-h-[80px]"
-                rows={3}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="category-order">{localize('com_ui_category_order')}</Label>
-                <Input
-                  id="category-order"
-                  type="number"
-                  value={editingCategory.order}
-                  onChange={(e) => setEditingCategory({ ...editingCategory, order: parseInt(e.target.value) || 0 })}
-                  className="mt-1"
-                  min={0}
-                />
+          {editingCategory && (
+            <form onSubmit={handleSubmitCategory} className="space-y-4 p-4 border-border-light border rounded-theme-surface bg-surface-secondary">
+              <div className="text-lg font-medium">
+                {isCreating ? localize('com_ui_create_category') : localize('com_ui_edit_category')}
               </div>
-              <div className="flex items-end">
-                <Label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={editingCategory.isActive}
-                    onChange={(e) => setEditingCategory({ ...editingCategory, isActive: e.target.checked })}
-                    className="size-4"
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="category-value">{localize('com_ui_category_value')}</Label>
+                  <Input
+                    id="category-value"
+                    value={editingCategory.value}
+                    onChange={(e) => setEditingCategory({ ...editingCategory, value: e.target.value })}
+                    placeholder="regulatory"
+                    disabled={!isCreating}
+                    className="mt-1"
+                    required
                   />
-                  <span className="text-sm">{localize('com_ui_category_active')}</span>
-                </Label>
+                  <p className="text-xs text-text-muted mt-1">{localize('com_ui_category_value_help')}</p>
+                </div>
+                <div>
+                  <Label htmlFor="category-label">{localize('com_ui_category_label')}</Label>
+                  <Input
+                    id="category-label"
+                    value={editingCategory.label}
+                    onChange={(e) => setEditingCategory({ ...editingCategory, label: e.target.value })}
+                    placeholder="Regulatory"
+                    className="mt-1"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="category-description">{localize('com_ui_category_description')}</Label>
+                  <Textarea
+                    id="category-description"
+                    value={editingCategory.description}
+                    onChange={(e) => setEditingCategory({ ...editingCategory, description: e.target.value })}
+                    placeholder="EU/UK compliance agents"
+                    className="mt-1 min-h-[80px]"
+                    rows={3}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="category-order">{localize('com_ui_category_order')}</Label>
+                    <Input
+                      id="category-order"
+                      type="number"
+                      value={editingCategory.order}
+                      onChange={(e) => setEditingCategory({ ...editingCategory, order: parseInt(e.target.value) || 0 })}
+                      className="mt-1"
+                      min={0}
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <Label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={editingCategory.isActive}
+                        onChange={(e) => setEditingCategory({ ...editingCategory, isActive: e.target.checked })}
+                        className="size-4"
+                      />
+                      <span className="text-sm">{localize('com_ui_category_active')}</span>
+                    </Label>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-          <div className="flex justify-end gap-2 mt-4">
-            <Button type="button" variant="outline" onClick={handleCancelCategory}>
-              <X className="size-4 mr-2" />
-              {localize('com_ui_cancel')}
-            </Button>
-            <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
-              {createMutation.isPending || updateMutation.isPending ? (
-                <>
-                  <Loader2 className="size-4 mr-2 animate-spin" />
-                  {localize('com_ui_saving')}
-                </>
-              ) : (
-                <>
-                  <Save className="size-4 mr-2" />
-                  {localize('com_ui_save')}
-                </>
-              )}
-            </Button>
-          </div>
-        </form>
-      )}
-
-      {filteredCategories.length > 0 && (
-        <div className="space-y-2 max-h-[400px] overflow-y-auto">
-          {filteredCategories.map((cat) => (
-            <div
-              key={cat.value}
-              className={cn(
-                'flex items-center justify-between p-3 border-border-light border rounded-theme-surface bg-surface-secondary',
-              )}
-            >
-              <div className="flex items-center gap-3 min-w-0 flex-1">
-                <div className="font-medium truncate">{cat.label}</div>
-                {cat.description && <span className="text-xs text-text-muted truncate">{cat.description}</span>}
-                <span className="text-xs text-text-muted">({cat.value})</span>
-                {sourceBadge(cat.source)}
-              </div>
-              <div className="flex items-center gap-2">
-                <span className={cn(
-                  'px-2 py-0.5 text-xs rounded-full',
-                  cat.isActive === false
-                    ? 'bg-red-500/10 text-red-500'
-                    : 'bg-green-500/10 text-green-500'
-                )}>
-                  {cat.isActive === false ? localize('com_ui_hidden') : localize('com_ui_active')}
-                </span>
-                <Button
-                  size="icon-sm"
-                  variant="ghost"
-                  className="size-8 text-text-secondary hover:text-text-primary"
-                  onClick={() => handleEditCategory(cat)}
-                  aria-label={localize('com_ui_edit_category')}
-                >
-                  <Edit2 className="size-4" />
+              <div className="flex justify-end gap-2 mt-4">
+                <Button type="button" variant="outline" onClick={handleCancelCategory}>
+                  <X className="size-4 mr-2" />
+                  {localize('com_ui_cancel')}
                 </Button>
-                <Button
-                  size="icon-sm"
-                  variant="ghost"
-                  className="size-8 text-text-secondary hover:text-red-500"
-                  onClick={() => handleDeleteCategory(cat.value)}
-                  aria-label={localize('com_ui_delete_category')}
-                >
-                  <Trash2 className="size-4" />
+                <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
+                  {createMutation.isPending || updateMutation.isPending ? (
+                    <>
+                      <Loader2 className="size-4 mr-2 animate-spin" />
+                      {localize('com_ui_saving')}
+                    </>
+                  ) : (
+                    <>
+                      <Save className="size-4 mr-2" />
+                      {localize('com_ui_save')}
+                    </>
+                  )}
                 </Button>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            </form>
+          )}
 
-      {filteredCategories.length === 0 && (
-        <div className="text-center py-8 text-text-secondary">
-          {personalOnly
-            ? localize('com_ui_no_personal_categories')
-            : localize('com_ui_no_categories')}
+          {filteredCategories.length > 0 && (
+            <div className="space-y-2 max-h-[400px] overflow-y-auto">
+              {filteredCategories.map((cat) => (
+                <div
+                  key={cat.value}
+                  className={cn(
+                    'flex items-center justify-between p-3 border-border-light border rounded-theme-surface bg-surface-secondary',
+                  )}
+                >
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="font-medium truncate">{cat.label}</div>
+                    {cat.description && <span className="text-xs text-text-muted truncate">{cat.description}</span>}
+                    <span className="text-xs text-text-muted">({cat.value})</span>
+                    {sourceBadge(cat.source)}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={cn(
+                      'px-2 py-0.5 text-xs rounded-full',
+                      cat.isActive === false
+                        ? 'bg-red-500/10 text-red-500'
+                        : 'bg-green-500/10 text-green-500'
+                    )}>
+                      {cat.isActive === false ? localize('com_ui_hidden') : localize('com_ui_active')}
+                    </span>
+                    <Button
+                      size="icon-sm"
+                      variant="ghost"
+                      className="size-8 text-text-secondary hover:text-text-primary"
+                      onClick={() => handleEditCategory(cat)}
+                      aria-label={localize('com_ui_edit_category')}
+                    >
+                      <Edit2 className="size-4" />
+                    </Button>
+                    <Button
+                      size="icon-sm"
+                      variant="ghost"
+                      className="size-8 text-text-secondary hover:text-red-500"
+                      onClick={() => handleDeleteCategory(cat.value)}
+                      aria-label={localize('com_ui_delete_category')}
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {filteredCategories.length === 0 && (
+            <div className="text-center py-8 text-text-secondary">
+              {personalOnly
+                ? localize('com_ui_no_personal_categories')
+                : localize('com_ui_no_categories')}
+            </div>
+          )}
         </div>
-      )}
-    </div>
+      </DialogContent>
+    </Dialog>
   );
-
-  if (trigger) {
-    return (
-      <Dialog>
-        <DialogTrigger asChild>{trigger}</DialogTrigger>
-        <DialogContent className="w-11/12 max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>{title || localize('com_agents_categories')}</DialogTitle>
-          </DialogHeader>
-          {dialogContent}
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
-  return <>{dialogContent}</>;
 }
 
 export default CategoriesManager;

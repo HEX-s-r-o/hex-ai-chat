@@ -44,7 +44,7 @@ router.get('/categories', configMiddleware, v1.getAgentCategories);
  * @route POST /agents/categories
  */
 router.post('/categories', configMiddleware, generateCheckAccess({
-  permissionType: PermissionTypes.AGENTS,
+  permissionType: PermissionTypes.MARKETPLACE,
   permissions: [Permissions.USE, Permissions.CREATE],
   getRoleByName,
 }), v1.createCategory);
@@ -54,7 +54,7 @@ router.post('/categories', configMiddleware, generateCheckAccess({
  * @route PATCH /agents/categories/:value
  */
 router.patch('/categories/:value', configMiddleware, generateCheckAccess({
-  permissionType: PermissionTypes.AGENTS,
+  permissionType: PermissionTypes.MARKETPLACE,
   permissions: [Permissions.USE, Permissions.EDIT],
   getRoleByName,
 }), v1.updateCategory);
@@ -64,7 +64,7 @@ router.patch('/categories/:value', configMiddleware, generateCheckAccess({
  * @route DELETE /agents/categories/:value
  */
 router.delete('/categories/:value', configMiddleware, generateCheckAccess({
-  permissionType: PermissionTypes.AGENTS,
+  permissionType: PermissionTypes.MARKETPLACE,
   permissions: [Permissions.USE, Permissions.DELETE],
   getRoleByName,
 }), v1.deleteCategory);
