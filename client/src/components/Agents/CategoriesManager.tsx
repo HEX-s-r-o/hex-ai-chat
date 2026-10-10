@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { Plus, Trash2, Edit2, X, Save, Loader2, FolderOpen, FolderCog } from 'lucide-react';
-import { Button, useToastContext, Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, Input, Textarea, Label, Badge, Switch } from '@librechat/client';
+import { Plus, Trash2, Edit2, X, Save, Loader2, FolderOpen } from 'lucide-react';
+import { Button, useToastContext, DialogContent, DialogHeader, DialogTitle, DialogDescription, Input, Textarea, Label } from '@librechat/client';
 import { useGetAgentCategoriesQuery, useCreateAgentCategoryMutation, useUpdateAgentCategoryMutation, useDeleteAgentCategoryMutation } from '~/data-provider';
-import { useGetStartupConfig } from '~/data-provider';
 import { useLocalize, TranslationKeys } from '~/hooks';
 import { cn } from '~/utils';
 import type t from 'librechat-data-provider';
@@ -47,10 +46,6 @@ export function CategoriesManager({
     { staleTime: 0 },
   );
 
-  const { data: startupConfig } = useGetStartupConfig();
-  const allowUserCategories = startupConfig?.interface?.marketplace?.allowUserCategories !== false;
-  const isAdmin = false;
-
   const createMutation = useCreateAgentCategoryMutation({
     onSuccess: () => {
       showToast({ status: 'success', message: localize('com_ui_category_created') });
@@ -91,19 +86,11 @@ export function CategoriesManager({
   });
 
   const handleCreateCategory = () => {
-    if (!allowUserCategories && !isAdmin) {
-      showToast({ status: 'error', message: localize('com_ui_category_user_creation_disabled') });
-      return;
-    }
     setEditingCategory({ ...initialCategoryForm });
     setIsCreating(true);
   };
 
   const handleEditCategory = (cat) => {
-    if (!allowUserCategories && !isAdmin && cat.source !== 'yaml') {
-      showToast({ status: 'error', message: localize('com_ui_category_user_edit_disabled') });
-      return;
-    }
     setEditingCategory({
       value: cat.value,
       label: cat.label,
@@ -114,10 +101,6 @@ export function CategoriesManager({
   };
 
   const handleDeleteCategory = (value) => {
-    if (!allowUserCategories && !isAdmin) {
-      showToast({ status: 'error', message: localize('com_ui_category_user_delete_disabled') });
-      return;
-    }
     if (window.confirm(localize('com_ui_confirm_delete_category', { value }))) {
       deleteMutation.mutate(value);
     }
@@ -195,35 +178,7 @@ export function CategoriesManager({
         </DialogHeader>
       )}
 
-      {/* Allow user category management toggle */}
-      <div className="flex items-center justify-between p-4 rounded-2xl bg-surface-secondary border border-border-light shadow-2xs">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="border-border-light bg-surface-primary text-text-primary flex size-9 shrink-0 items-center justify-center rounded-xl border">
-            <FolderCog className="size-4" aria-hidden="true" />
-          </div>
-          <div className="flex flex-col gap-0.5 min-w-0">
-            <Label className="text-sm font-semibold text-text-primary truncate">
-              {localize('com_ui_marketplace_allow_user_categories')}
-            </Label>
-            <p className="text-xs text-text-secondary truncate">
-              {localize('com_ui_marketplace_allow_user_categories_help')}
-            </p>
-          </div>
-        </div>
-        <Switch
-          checked={allowUserCategories}
-          onCheckedChange={() => {
-            showToast({
-              status: 'info',
-              message: localize('com_ui_feature_coming_soon'),
-            });
-          }}
-          disabled
-          aria-label={localize('com_ui_marketplace_allow_user_categories')}
-        />
-      </div>
-
-      <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-1">
+      <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
         <div className="flex items-center justify-between pb-2">
           {showCreateButton && !editingCategory && !isCreating && (
             <Button size="sm" variant="submit" onClick={handleCreateCategory} className="gap-2">
