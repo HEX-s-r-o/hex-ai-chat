@@ -555,7 +555,3 @@ export const useDeleteAgentCategoryMutation = (
     },
   );
 };
-
-export const invalidateAgentMarketplaceQueries = (queryClient: QueryClient) => {
-  queryClient.invalidateQueries([QueryKeys.marketplaceAgents]);
-};
