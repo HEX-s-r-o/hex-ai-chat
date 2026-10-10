@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import { ShieldEllipsis } from 'lucide-react';
+import { ShieldEllipsis, FolderCog } from 'lucide-react';
 import { Button, useToastContext, Switch, Label } from '@librechat/client';
 import { Permissions, PermissionTypes, SystemRoles } from 'librechat-data-provider';
 import type { PermissionConfig } from '~/components/ui';
 import { useUpdateMarketplacePermissionsMutation, useGetStartupConfig } from '~/data-provider';
 import { AdminSettingsDialog } from '~/components/ui';
 import { useLocalize, useAuthContext } from '~/hooks';
-import CategoriesManager from './CategoriesManager';
 
 const permissions: PermissionConfig[] = [
   { permission: Permissions.USE, labelKey: 'com_ui_marketplace_allow_use' },
@@ -44,40 +43,31 @@ const MarketplaceAdminSettings = () => {
 
   const isAdmin = user?.role === SystemRoles.ADMIN;
 
-  const extraContent = (
+  const extraContent = isAdmin ? (
     <div className="space-y-4 pt-4 mt-4 border-t border-border-light">
-      {isAdmin && (
-        <div className="flex items-center justify-between gap-4 px-4 py-3.5">
-          <div className="flex flex-col gap-0.5">
-            <Label className="text-text-primary text-sm font-medium cursor-pointer select-none">
-              {localize('com_ui_marketplace_allow_user_categories')}
-            </Label>
-            <p className="text-xs text-text-secondary">
-              {localize('com_ui_marketplace_allow_user_categories_help')}
-            </p>
-          </div>
-          <Switch
-            checked={allowUsers}
-            onCheckedChange={(checked) => {
-              setAllowUsers(checked);
-              showToast({
-                status: 'success',
-                message: localize('com_ui_saved'),
-              });
-            }}
-            aria-label={localize('com_ui_marketplace_allow_user_categories')}
-          />
+      <div className="flex items-center justify-between gap-4 px-4 py-3.5">
+        <div className="flex flex-col gap-0.5 min-w-0">
+          <Label className="text-text-primary text-sm font-medium cursor-pointer select-none truncate">
+            {localize('com_ui_marketplace_allow_user_categories')}
+          </Label>
+          <p className="text-xs text-text-secondary truncate">
+            {localize('com_ui_marketplace_allow_user_categories_help')}
+          </p>
         </div>
-      )}
-      <div className="pt-2">
-        <CategoriesManager
-          title={localize('com_agents_categories')}
-          personalOnly={false}
-          standalone={true}
+        <Switch
+          checked={allowUsers}
+          onCheckedChange={(checked) => {
+            setAllowUsers(checked);
+            showToast({
+              status: 'success',
+              message: localize('com_ui_saved'),
+            });
+          }}
+          aria-label={localize('com_ui_marketplace_allow_user_categories')}
         />
       </div>
     </div>
-  );
+  ) : null;
 
   return (
     <AdminSettingsDialog
