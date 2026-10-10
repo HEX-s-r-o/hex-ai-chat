@@ -1,12 +1,12 @@
+import React from 'react';
 import { ShieldEllipsis } from 'lucide-react';
-import { Button, useToastContext, Switch } from '@librechat/client';
+import { Button, useToastContext, Switch, Label } from '@librechat/client';
 import { Permissions, PermissionTypes } from 'librechat-data-provider';
 import type { PermissionConfig } from '~/components/ui';
 import { useUpdateMarketplacePermissionsMutation, useGetStartupConfig } from '~/data-provider';
 import { AdminSettingsDialog } from '~/components/ui';
 import { useLocalize } from '~/hooks';
 import CategoriesManager from './CategoriesManager';
-import { Label } from '@librechat/client';
 
 const permissions: PermissionConfig[] = [
   { permission: Permissions.USE, labelKey: 'com_ui_marketplace_allow_use' },
@@ -19,7 +19,7 @@ const MarketplaceAdminSettings = () => {
   const { data: startupConfig } = useGetStartupConfig();
   const allowUserCategories = startupConfig?.interface?.marketplace?.allowUserCategories !== false;
 
-  const permissionsMutation = useUpdateMarketplacePermissionsMutation({
+  const mutation = useUpdateMarketplacePermissionsMutation({
     onSuccess: () => {
       showToast({ status: 'success', message: localize('com_ui_saved') });
     },
@@ -28,8 +28,6 @@ const MarketplaceAdminSettings = () => {
     },
   });
 
-  /* `outline` matches the search field it sits beside — same border token, same
-     radius — and `size-9` keeps the two controls the same height. */
   const trigger = (
     <Button
       size="icon-sm"
@@ -42,7 +40,7 @@ const MarketplaceAdminSettings = () => {
   );
 
   const extraContent = (
-    <div className="border-border-light border-t pt-4 mt-4">
+    <div className="space-y-4 pt-4 mt-4 border-t border-border-light">
       <div className="flex items-center justify-between p-3">
         <div className="flex flex-col gap-1">
           <Label className="text-sm font-medium text-text-primary">
@@ -64,6 +62,13 @@ const MarketplaceAdminSettings = () => {
           aria-label={localize('com_ui_marketplace_allow_user_categories')}
         />
       </div>
+      <div className="border-border-light border-t pt-4">
+        <CategoriesManager
+          title={localize('com_agents_categories')}
+          personalOnly={false}
+          standalone={true}
+        />
+      </div>
     </div>
   );
 
@@ -73,7 +78,7 @@ const MarketplaceAdminSettings = () => {
       sectionKey="com_ui_marketplace"
       permissions={permissions}
       menuId="marketplace-role-dropdown"
-      mutation={permissionsMutation}
+      mutation={mutation}
       trigger={trigger}
       showAdminWarning={false}
       extraContent={extraContent}
