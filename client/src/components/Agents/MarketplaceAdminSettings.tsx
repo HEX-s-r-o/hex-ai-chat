@@ -1,9 +1,9 @@
 import React from 'react';
 import { ShieldEllipsis } from 'lucide-react';
-import { Button, useToastContext } from '@librechat/client';
+import { Button, useToastContext, Switch, Label } from '@librechat/client';
 import { Permissions, PermissionTypes } from 'librechat-data-provider';
 import type { PermissionConfig } from '~/components/ui';
-import { useUpdateMarketplacePermissionsMutation } from '~/data-provider';
+import { useUpdateMarketplacePermissionsMutation, useGetStartupConfig } from '~/data-provider';
 import { AdminSettingsDialog } from '~/components/ui';
 import { useLocalize } from '~/hooks';
 
@@ -14,6 +14,9 @@ const permissions: PermissionConfig[] = [
 const MarketplaceAdminSettings = () => {
   const localize = useLocalize();
   const { showToast } = useToastContext();
+
+  const { data: startupConfig } = useGetStartupConfig();
+  const allowUserCategories = startupConfig?.interface?.marketplace?.allowUserCategories !== false;
 
   const mutation = useUpdateMarketplacePermissionsMutation({
     onSuccess: () => {
@@ -35,6 +38,30 @@ const MarketplaceAdminSettings = () => {
     </Button>
   );
 
+  const extraContent = (
+    <div className="border-border-light border-t px-4 py-3.5 flex items-center justify-between gap-4">
+      <div className="flex flex-col gap-0.5">
+        <Label className="text-text-primary text-sm font-medium cursor-pointer">
+          {localize('com_ui_marketplace_allow_user_categories')}
+        </Label>
+        <p className="text-xs text-text-secondary">
+          {localize('com_ui_marketplace_allow_user_categories_help')}
+        </p>
+      </div>
+      <Switch
+        checked={allowUserCategories}
+        onCheckedChange={() => {
+          showToast({
+            status: 'info',
+            message: localize('com_ui_feature_coming_soon'),
+          });
+        }}
+        disabled
+        aria-label={localize('com_ui_marketplace_allow_user_categories')}
+      />
+    </div>
+  );
+
   return (
     <AdminSettingsDialog
       permissionType={PermissionTypes.MARKETPLACE}
@@ -44,6 +71,7 @@ const MarketplaceAdminSettings = () => {
       mutation={mutation}
       trigger={trigger}
       showAdminWarning={false}
+      extraContent={extraContent}
     />
   );
 };
