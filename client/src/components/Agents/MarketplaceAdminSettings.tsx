@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldEllipsis } from 'lucide-react';
+import { ShieldEllipsis, FolderCog } from 'lucide-react';
 import { Button, useToastContext, Switch, Label } from '@librechat/client';
 import { Permissions, PermissionTypes } from 'librechat-data-provider';
 import type { PermissionConfig } from '~/components/ui';
@@ -40,15 +40,21 @@ const MarketplaceAdminSettings = () => {
   );
 
   const extraContent = (
-    <div className="space-y-4 pt-4 mt-4 border-t border-border-light">
-      <div className="flex items-center justify-between p-3">
-        <div className="flex flex-col gap-1">
-          <Label className="text-sm font-medium text-text-primary">
-            {localize('com_ui_marketplace_allow_user_categories')}
-          </Label>
-          <p className="text-xs text-text-secondary">
-            {localize('com_ui_marketplace_allow_user_categories_help')}
-          </p>
+    <div className="space-y-6 pt-5 mt-5 border-t border-border-light">
+      {/* Category Management Header / Toggle Section */}
+      <div className="flex items-center justify-between p-4 rounded-2xl bg-surface-secondary border border-border-light shadow-2xs">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="border-border-light bg-surface-primary text-text-primary flex size-9 shrink-0 items-center justify-center rounded-xl border">
+            <FolderCog className="size-4" aria-hidden="true" />
+          </div>
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <Label className="text-sm font-semibold text-text-primary truncate">
+              {localize('com_ui_marketplace_allow_user_categories')}
+            </Label>
+            <p className="text-xs text-text-secondary truncate">
+              {localize('com_ui_marketplace_allow_user_categories_help')}
+            </p>
+          </div>
         </div>
         <Switch
           checked={allowUserCategories}
@@ -62,7 +68,9 @@ const MarketplaceAdminSettings = () => {
           aria-label={localize('com_ui_marketplace_allow_user_categories')}
         />
       </div>
-      <div className="border-border-light border-t pt-4">
+
+      {/* Embedded Categories Manager */}
+      <div className="border border-border-light rounded-2xl bg-surface-primary overflow-hidden shadow-sm">
         <CategoriesManager
           title={localize('com_agents_categories')}
           personalOnly={false}
