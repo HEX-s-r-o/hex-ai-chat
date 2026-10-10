@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
-import { ShieldEllipsis, FolderCog } from 'lucide-react';
-import { Button, useToastContext, Switch, Label } from '@librechat/client';
-import { Permissions, PermissionTypes, SystemRoles } from 'librechat-data-provider';
+import React from 'react';
+import { ShieldEllipsis } from 'lucide-react';
+import { Button, useToastContext } from '@librechat/client';
+import { Permissions, PermissionTypes } from 'librechat-data-provider';
 import type { PermissionConfig } from '~/components/ui';
-import { useUpdateMarketplacePermissionsMutation, useGetStartupConfig } from '~/data-provider';
+import { useUpdateMarketplacePermissionsMutation } from '~/data-provider';
 import { AdminSettingsDialog } from '~/components/ui';
-import { useLocalize, useAuthContext } from '~/hooks';
+import { useLocalize } from '~/hooks';
 
 const permissions: PermissionConfig[] = [
   { permission: Permissions.USE, labelKey: 'com_ui_marketplace_allow_use' },
@@ -14,12 +14,6 @@ const permissions: PermissionConfig[] = [
 const MarketplaceAdminSettings = () => {
   const localize = useLocalize();
   const { showToast } = useToastContext();
-  const { user } = useAuthContext();
-
-  const { data: startupConfig } = useGetStartupConfig();
-  const [allowUsers, setAllowUsers] = useState(
-    startupConfig?.interface?.marketplace?.allowUserCategories !== false,
-  );
 
   const mutation = useUpdateMarketplacePermissionsMutation({
     onSuccess: () => {
@@ -41,40 +35,6 @@ const MarketplaceAdminSettings = () => {
     </Button>
   );
 
-  // Only admins see the category management configuration toggle
-  const isAdmin = user?.role === SystemRoles.ADMIN;
-
-  const extraContent = isAdmin ? (
-    <div className="space-y-4 pt-5 mt-5 border-t border-border-light">
-      <div className="flex items-center justify-between p-4 rounded-2xl bg-surface-secondary border border-border-light shadow-2xs">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="border-border-light bg-surface-primary text-text-primary flex size-9 shrink-0 items-center justify-center rounded-xl border">
-            <FolderCog className="size-4" aria-hidden="true" />
-          </div>
-          <div className="flex flex-col gap-0.5 min-w-0">
-            <Label className="text-sm font-semibold text-text-primary truncate cursor-pointer">
-              {localize('com_ui_marketplace_allow_user_categories')}
-            </Label>
-            <p className="text-xs text-text-secondary truncate">
-              {localize('com_ui_marketplace_allow_user_categories_help')}
-            </p>
-          </div>
-        </div>
-        <Switch
-          checked={allowUsers}
-          onCheckedChange={(checked) => {
-            setAllowUsers(checked);
-            showToast({
-              status: 'success',
-              message: localize('com_ui_saved'),
-            });
-          }}
-          aria-label={localize('com_ui_marketplace_allow_user_categories')}
-        />
-      </div>
-    </div>
-  ) : null;
-
   return (
     <AdminSettingsDialog
       permissionType={PermissionTypes.MARKETPLACE}
@@ -84,7 +44,6 @@ const MarketplaceAdminSettings = () => {
       mutation={mutation}
       trigger={trigger}
       showAdminWarning={false}
-      extraContent={extraContent}
     />
   );
 };
