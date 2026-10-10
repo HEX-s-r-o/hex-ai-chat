@@ -309,7 +309,6 @@ const AdminSettingsDialog: React.FC<AdminSettingsDialogProps> = ({
                 {localize('com_ui_save')}
               </Button>
             </OGDialogFooter>
-            {extraContent}
           </form>
         </OGDialogContent>
       </OGDialog>
