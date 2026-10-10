@@ -3,10 +3,9 @@ import { PermissionTypes, Permissions } from 'librechat-data-provider';
 import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
 import type t from 'librechat-data-provider';
 import { useGetEndpointsQuery, useGetAgentCategoriesQuery } from '~/data-provider';
-import { Plus } from 'lucide-react';
+import { Plus, FolderOpen } from 'lucide-react';
 import { Button, Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from '@librechat/client';
 import CategoriesManager from './CategoriesManager';
-import { useGetAgentCategoriesQuery } from '~/data-provider';
 import SortDropdown, { SORT_OPTIONS, DEFAULT_SORT_OPTION } from './SortDropdown';
 import { useDocumentTitle, useHasAccess, useLocalize } from '~/hooks';
 import MarketplaceAdminSettings from './MarketplaceAdminSettings';
@@ -40,12 +39,15 @@ const AgentMarketplace: React.FC<AgentMarketplaceProps> = ({ className = '' }) =
 
   useDocumentTitle(`${localize('com_agents_marketplace')} | LibreChat`);
   useGetEndpointsQuery();
-  const categoriesQuery = useGetAgentCategoriesQuery({
-    staleTime: 1000 * 60 * 15,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    refetchOnMount: false,
-  });
+  const categoriesQuery = useGetAgentCategoriesQuery(
+    {},
+    {
+      staleTime: 1000 * 60 * 15,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      refetchOnMount: false,
+    },
+  );
   const hasPromotedCategory = categoriesQuery.data?.some((item) => item.value === 'promoted');
   /* Turning the filter on from Top Picks navigates to `/agents/all`, because an authored
      agent is rarely promoted. A restored or shared `/agents?mine=1` carries no path
@@ -157,6 +159,18 @@ const AgentMarketplace: React.FC<AgentMarketplaceProps> = ({ className = '' }) =
                     aria-label={localize('com_agents_categories')}
                   >
                     <Plus className="size-4" aria-hidden="true" />
+                  </Button>
+                </DialogTrigger>
+              </Dialog>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button
+                    size="icon-sm"
+                    variant="outline"
+                    className="size-9 shrink-0 transition-none"
+                    aria-label={localize('com_agents_categories')}
+                  >
+                    <FolderOpen className="size-4" aria-hidden="true" />
                   </Button>
                 </DialogTrigger>
                 <CategoriesManager

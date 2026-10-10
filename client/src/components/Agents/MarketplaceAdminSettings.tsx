@@ -1,11 +1,12 @@
 import { ShieldEllipsis } from 'lucide-react';
-import { Button, useToastContext } from '@librechat/client';
+import { Button, useToastContext, Switch } from '@librechat/client';
 import { Permissions, PermissionTypes } from 'librechat-data-provider';
 import type { PermissionConfig } from '~/components/ui';
-import { useUpdateMarketplacePermissionsMutation } from '~/data-provider';
+import { useUpdateMarketplacePermissionsMutation, useGetStartupConfig } from '~/data-provider';
 import { AdminSettingsDialog } from '~/components/ui';
 import { useLocalize } from '~/hooks';
 import CategoriesManager from './CategoriesManager';
+import { Label } from '@librechat/client';
 
 const permissions: PermissionConfig[] = [
   { permission: Permissions.USE, labelKey: 'com_ui_marketplace_allow_use' },
@@ -15,7 +16,10 @@ const MarketplaceAdminSettings = () => {
   const localize = useLocalize();
   const { showToast } = useToastContext();
 
-  const mutation = useUpdateMarketplacePermissionsMutation({
+  const { data: startupConfig } = useGetStartupConfig();
+  const allowUserCategories = startupConfig?.interface?.marketplace?.allowUserCategories !== false;
+
+  const permissionsMutation = useUpdateMarketplacePermissionsMutation({
     onSuccess: () => {
       showToast({ status: 'success', message: localize('com_ui_saved') });
     },
@@ -37,21 +41,48 @@ const MarketplaceAdminSettings = () => {
     </Button>
   );
 
+  const extraContent = (
+    <>
+      <div className="border-border-light border-t pt-4 mt-4">
+        <div className="flex items-center justify-between p-3">
+          <div className="flex flex-col gap-1">
+            <Label className="text-sm font-medium text-text-primary">
+              {localize('com_ui_marketplace_allow_user_categories')}
+            </Label>
+            <p className="text-xs text-text-secondary">
+              {localize('com_ui_marketplace_allow_user_categories_help')}
+            </p>
+          </div>
+          <Switch
+            checked={allowUserCategories}
+            onCheckedChange={() => {
+              showToast({
+                status: 'info',
+                message: localize('com_ui_feature_coming_soon'),
+              });
+            }}
+            disabled
+            aria-label={localize('com_ui_marketplace_allow_user_categories')}
+          />
+        </div>
+      </div>
+      <CategoriesManager
+        title={localize('com_agents_categories')}
+        personalOnly={false}
+      />
+    </>
+  );
+
   return (
     <AdminSettingsDialog
       permissionType={PermissionTypes.MARKETPLACE}
       sectionKey="com_ui_marketplace"
       permissions={permissions}
       menuId="marketplace-role-dropdown"
-      mutation={mutation}
+      mutation={permissionsMutation}
       trigger={trigger}
       showAdminWarning={false}
-      customContent={
-        <CategoriesManager
-          title={localize('com_agents_categories')}
-          personalOnly={false}
-        />
-      }
+      extraContent={extraContent}
     />
   );
 };

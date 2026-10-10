@@ -294,6 +294,9 @@ export type TCategory = {
 
 export type TMarketplaceCategory = TCategory & {
   count: number;
+  source?: 'user' | 'yaml' | 'default';
+  isActive?: boolean;
+  order?: number;
 };
 
 export type TError = {

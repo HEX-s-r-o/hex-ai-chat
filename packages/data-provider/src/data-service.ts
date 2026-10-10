@@ -775,8 +775,9 @@ export const revertAgentVersion = ({
 /**
  * Get agent categories with counts for marketplace tabs
  */
-export const getAgentCategories = (): Promise<t.TMarketplaceCategory[]> => {
-  return request.get(endpoints.agents({ path: 'categories' }));
+export const getAgentCategories = (params?: { includeInactive?: boolean }): Promise<t.TMarketplaceCategory[]> => {
+  const query = params?.includeInactive ? '?includeInactive=true' : '';
+  return request.get(endpoints.agents({ path: `categories${query}` }));
 };
 
 /**

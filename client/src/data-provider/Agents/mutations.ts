@@ -76,7 +76,7 @@ export const useCreateAgentMutation = (
   const queryClient = useQueryClient();
   return useMutation((newAgentData: t.AgentCreateParams) => dataService.createAgent(newAgentData), {
     onMutate: (variables) => options?.onMutate?.(variables),
-    onError: (error, variables, context) => options?.onError?.(error, variables, context),
+    onError: (error, variables) => options?.onError?.(error, variables),
     onSuccess: (newAgent, variables, context) => {
       ((keys: t.AgentListParams[]) => {
         keys.forEach((key) => {
@@ -120,8 +120,8 @@ export const useUpdateAgentMutation = (
     },
     {
       onMutate: (variables) => options?.onMutate?.(variables),
-      onError: (error, variables, context) => {
-        return options?.onError?.(error, variables, context);
+      onError: (error, variables) => {
+        return options?.onError?.(error, variables);
       },
       onSuccess: (updatedAgent, variables, context) => {
         ((keys: t.AgentListParams[]) => {
@@ -170,7 +170,7 @@ export const useDeleteAgentMutation = (
     },
     {
       onMutate: (variables) => options?.onMutate?.(variables),
-      onError: (error, variables, context) => options?.onError?.(error, variables, context),
+      onError: (error, variables) => options?.onError?.(error, variables),
       onSuccess: (_data, variables, context) => {
         const data = ((keys: t.AgentListParams[]) => {
           let data: t.Agent[] = [];
@@ -273,7 +273,7 @@ export const useUploadAgentAvatarMutation = (
     mutationKey: [MutationKeys.agentAvatarUpload],
     mutationFn: (variables: t.AgentAvatarVariables) => dataService.uploadAgentAvatar(variables),
     onMutate: (variables) => options?.onMutate?.(variables),
-    onError: (error, variables, context) => options?.onError?.(error, variables, context),
+    onError: (error, variables) => options?.onError?.(error, variables),
     onSuccess: (updatedAgent, variables, context) => {
       ((keys: t.AgentListParams[]) => {
         keys.forEach((key) => {
@@ -323,7 +323,7 @@ export const useUpdateAgentAction = (
       dataService.updateAgentAction(variables),
 
     onMutate: (variables) => options?.onMutate?.(variables),
-    onError: (error, variables, context) => options?.onError?.(error, variables, context),
+    onError: (error, variables) => options?.onError?.(error, variables),
     onSuccess: (updateAgentActionResponse, variables, context) => {
       const updatedAgent = updateAgentActionResponse[0];
       ((keys: t.AgentListParams[]) => {
@@ -388,7 +388,7 @@ export const useDeleteAgentAction = (
     },
 
     onMutate: (variables) => options?.onMutate?.(variables),
-    onError: (error, variables, context) => options?.onError?.(error, variables, context),
+    onError: (error, variables) => options?.onError?.(error, variables),
     onSuccess: (_data, variables, context) => {
       let domain: string | undefined = '';
       queryClient.setQueryData<t.Action[]>([QueryKeys.actions], (prev) => {
@@ -455,7 +455,7 @@ export const useRevertAgentVersionMutation = (
     },
     {
       onMutate: (variables) => options?.onMutate?.(variables),
-      onError: (error, variables, context) => options?.onError?.(error, variables, context),
+      onError: (error, variables) => options?.onError?.(error, variables),
       onSuccess: (revertedAgent, variables, context) => {
         queryClient.setQueryData<t.Agent>([QueryKeys.agent, variables.agent_id], revertedAgent);
         queryClient.setQueryData<t.Agent>(
@@ -496,14 +496,14 @@ export const invalidateAgentMarketplaceQueries = (queryClient: QueryClient) => {
  * Hook for creating a new category
  */
 export const useCreateAgentCategoryMutation = (
-  options?: t.CreateAgentCategoryOptions,
+  options?: { onMutate?: (vars: t.AgentCategoryCreateParams) => void; onError?: (error: Error, vars: t.AgentCategoryCreateParams) => void; onSuccess?: (data: t.TMarketplaceCategory, vars: t.AgentCategoryCreateParams, context: unknown) => void },
 ): UseMutationResult<t.TMarketplaceCategory, Error, t.AgentCategoryCreateParams> => {
   const queryClient = useQueryClient();
   return useMutation(
     (newCategory: t.AgentCategoryCreateParams) => dataService.createAgentCategory(newCategory),
     {
       onMutate: (variables) => options?.onMutate?.(variables),
-      onError: (error, variables, context) => options?.onError?.(error, variables, context),
+      onError: (error, variables) => options?.onError?.(error, variables),
       onSuccess: (newCategory, variables, context) => {
         queryClient.invalidateQueries([QueryKeys.agentCategories]);
         invalidateAgentMarketplaceQueries(queryClient);
@@ -517,7 +517,7 @@ export const useCreateAgentCategoryMutation = (
  * Hook for updating a category
  */
 export const useUpdateAgentCategoryMutation = (
-  options?: t.UpdateAgentCategoryOptions,
+  options?: { onMutate?: (vars: { value: string; data: t.AgentCategoryUpdateParams }) => void; onError?: (error: Error, vars: { value: string; data: t.AgentCategoryUpdateParams }) => void; onSuccess?: (data: t.TMarketplaceCategory, vars: { value: string; data: t.AgentCategoryUpdateParams }, context: unknown) => void },
 ): UseMutationResult<t.TMarketplaceCategory, Error, { value: string; data: t.AgentCategoryUpdateParams }> => {
   const queryClient = useQueryClient();
   return useMutation(
@@ -525,7 +525,7 @@ export const useUpdateAgentCategoryMutation = (
       dataService.updateAgentCategory({ value, data }),
     {
       onMutate: (variables) => options?.onMutate?.(variables),
-      onError: (error, variables, context) => options?.onError?.(error, variables, context),
+      onError: (error, variables) => options?.onError?.(error, variables),
       onSuccess: (updatedCategory, variables, context) => {
         queryClient.invalidateQueries([QueryKeys.agentCategories]);
         invalidateAgentMarketplaceQueries(queryClient);
@@ -539,14 +539,14 @@ export const useUpdateAgentCategoryMutation = (
  * Hook for deleting a category
  */
 export const useDeleteAgentCategoryMutation = (
-  options?: t.DeleteAgentCategoryOptions,
+  options?: { onMutate?: (vars: string) => void; onError?: (error: Error, vars: string) => void; onSuccess?: (data: void, vars: string, context: unknown) => void },
 ): UseMutationResult<void, Error, string> => {
   const queryClient = useQueryClient();
   return useMutation(
     (value: string) => dataService.deleteAgentCategory({ value }),
     {
       onMutate: (variables) => options?.onMutate?.(variables),
-      onError: (error, variables, context) => options?.onError?.(error, variables, context),
+      onError: (error, variables) => options?.onError?.(error, variables),
       onSuccess: (_data, variables, context) => {
         queryClient.invalidateQueries([QueryKeys.agentCategories]);
         invalidateAgentMarketplaceQueries(queryClient);

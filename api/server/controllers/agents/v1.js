@@ -2290,18 +2290,27 @@ const mergeCategories = (configCategories, dbCategories) => {
  */
 const getAgentCategories = async (req, res) => {
   try {
+    const includeInactive = req.query.includeInactive === 'true';
     const configCategories = buildCategoriesFromConfig(req.config?.interfaceConfig);
-    const dbCategories = await db.getCategoriesWithCounts();
+    const dbCategories = await db.getAllCategoriesWithCounts();
     const promotedCount = await db.countPromotedAgents();
 
     // Merge with precedence
     let categories = mergeCategories(configCategories, dbCategories);
+
+    // Filter out inactive categories unless explicitly requested
+    if (!includeInactive) {
+      categories = categories.filter((cat) => cat.isActive !== false);
+    }
 
     const formattedCategories = categories.map((category) => ({
       value: category.value,
       label: category.label,
       count: category.count,
       description: category.description,
+      source: category.source,
+      isActive: category.isActive !== false,
+      order: category.order,
     }));
 
     if (promotedCount > 0) {
