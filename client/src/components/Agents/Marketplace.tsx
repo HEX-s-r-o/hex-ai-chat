@@ -3,6 +3,10 @@ import { PermissionTypes, Permissions } from 'librechat-data-provider';
 import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
 import type t from 'librechat-data-provider';
 import { useGetEndpointsQuery, useGetAgentCategoriesQuery } from '~/data-provider';
+import { Plus } from 'lucide-react';
+import { Button, Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from '@librechat/client';
+import CategoriesManager from './CategoriesManager';
+import { useGetAgentCategoriesQuery } from '~/data-provider';
 import SortDropdown, { SORT_OPTIONS, DEFAULT_SORT_OPTION } from './SortDropdown';
 import { useDocumentTitle, useHasAccess, useLocalize } from '~/hooks';
 import MarketplaceAdminSettings from './MarketplaceAdminSettings';
@@ -144,6 +148,22 @@ const AgentMarketplace: React.FC<AgentMarketplaceProps> = ({ className = '' }) =
               {isSmallScreen && <OpenSidebar className="size-9 shrink-0 rounded-lg" />}
               <SearchBar value={searchQuery} onSearch={handleSearch} className="min-w-0 flex-1" />
               <MarketplaceAdminSettings />
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button
+                    size="icon-sm"
+                    variant="outline"
+                    className="size-9 shrink-0 transition-none"
+                    aria-label={localize('com_agents_categories')}
+                  >
+                    <Plus className="size-4" aria-hidden="true" />
+                  </Button>
+                </DialogTrigger>
+                <CategoriesManager
+                  title={localize('com_agents_categories')}
+                  onCategoriesChange={() => categoriesQuery.refetch()}
+                />
+              </Dialog>
             </div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 pb-3">
               <div className="min-w-0 flex-1 basis-full lg:basis-0">
