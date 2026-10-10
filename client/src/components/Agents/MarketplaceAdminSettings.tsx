@@ -44,28 +44,26 @@ const MarketplaceAdminSettings = () => {
   const isAdmin = user?.role === SystemRoles.ADMIN;
 
   const extraContent = isAdmin ? (
-    <div className="divide-border-light border-border-light bg-surface-secondary border-t divide-y overflow-hidden rounded-b-xl border">
-      <div className="flex items-center justify-between gap-4 px-4 py-3.5">
-        <div className="flex flex-col gap-0.5">
-          <Label className="text-text-primary text-sm font-medium cursor-pointer">
-            {localize('com_ui_marketplace_allow_user_categories')}
-          </Label>
-          <p className="text-xs text-text-secondary">
-            {localize('com_ui_marketplace_allow_user_categories_help')}
-          </p>
-        </div>
-        <Switch
-          checked={allowUsers}
-          onCheckedChange={(checked) => {
-            setAllowUsers(checked);
-            showToast({
-              status: 'success',
-              message: localize('com_ui_saved'),
-            });
-          }}
-          aria-label={localize('com_ui_marketplace_allow_user_categories')}
-        />
+    <div className="flex items-center justify-between gap-4 px-4 py-3.5">
+      <div className="flex flex-col gap-0.5">
+        <Label className="text-text-primary text-sm font-medium cursor-pointer select-none">
+          {localize('com_ui_marketplace_allow_user_categories')}
+        </Label>
+        <p className="text-xs text-text-secondary">
+          {localize('com_ui_marketplace_allow_user_categories_help')}
+        </p>
       </div>
+      <Switch
+        checked={allowUsers}
+        onCheckedChange={(checked) => {
+          setAllowUsers(checked);
+          showToast({
+            status: 'success',
+            message: localize('com_ui_saved'),
+          });
+        }}
+        aria-label={localize('com_ui_marketplace_allow_user_categories')}
+      />
     </div>
   ) : null;
 
