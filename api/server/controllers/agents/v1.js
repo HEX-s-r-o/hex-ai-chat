@@ -2240,11 +2240,50 @@ const buildCategoriesFromConfig = (interfaceConfig) => {
     count: 0,
     order: cat.order ?? index,
     custom: true,
+    source: 'yaml',
   })).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 };
 
 /**
+ * Merge categories with precedence: DB (custom/user) > YAML config > DB (seeded defaults)
+ * Hidden categories (isActive: false) are excluded entirely.
+ */
+const mergeCategories = (configCategories, dbCategories) => {
+  const merged = new Map();
+
+  // 1. Start with YAML config categories (lowest precedence)
+  if (configCategories) {
+    for (const cat of configCategories) {
+      merged.set(cat.value, { ...cat, source: 'yaml' });
+    }
+  }
+
+  // 2. Overlay DB categories (highest precedence)
+  // DB categories include both user-created (custom: true) and seeded defaults (custom: false)
+  for (const cat of dbCategories) {
+    if (cat.isActive === false) {
+      // User explicitly hid this category - remove it entirely
+      merged.delete(cat.value);
+      continue;
+    }
+    merged.set(cat.value, {
+      value: cat.value,
+      label: cat.label,
+      description: cat.description || '',
+      count: cat.agentCount || 0,
+      order: cat.order ?? 0,
+      custom: cat.custom || false,
+      source: cat.custom ? 'user' : 'default',
+    });
+  }
+
+  // Convert to array and sort by order
+  return Array.from(merged.values()).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+};
+
+/**
  * Get all agent categories with counts
+ * Precedence: DB custom/user > YAML config > DB seeded defaults
  *
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
@@ -2252,27 +2291,11 @@ const buildCategoriesFromConfig = (interfaceConfig) => {
 const getAgentCategories = async (req, res) => {
   try {
     const configCategories = buildCategoriesFromConfig(req.config?.interfaceConfig);
-    
-    let categories;
-    let promotedCount = 0;
+    const dbCategories = await db.getCategoriesWithCounts();
+    const promotedCount = await db.countPromotedAgents();
 
-    if (configCategories) {
-      categories = configCategories;
-      // still count promoted if any
-      promotedCount = await db.countPromotedAgents();
-    } else {
-      const [dbCategories, count] = await Promise.all([
-        db.getCategoriesWithCounts(),
-        db.countPromotedAgents(),
-      ]);
-      categories = dbCategories.map((category) => ({
-        value: category.value,
-        label: category.label,
-        count: category.agentCount,
-        description: category.description,
-      }));
-      promotedCount = count;
-    }
+    // Merge with precedence
+    let categories = mergeCategories(configCategories, dbCategories);
 
     const formattedCategories = categories.map((category) => ({
       value: category.value,
@@ -2306,6 +2329,74 @@ const getAgentCategories = async (req, res) => {
     });
   }
 };
+
+/**
+ * Create a new category (admin only)
+ */
+const createCategory = async (req, res) => {
+  try {
+    const { value, label, description, order } = req.body;
+    if (!value || !label) {
+      return res.status(400).json({ error: 'value and label are required' });
+    }
+    const category = await db.createCategory({
+      value: value.trim(),
+      label: label.trim(),
+      description: (description || '').trim(),
+      order: order ?? 0,
+      isActive: true,
+      custom: true,
+    });
+    res.status(201).json(category);
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({ error: 'Category with this value already exists' });
+    }
+    logger.error('[/Agents/Marketplace] Error creating category:', error);
+    res.status(500).json({ error: 'Failed to create category' });
+  }
+};
+
+/**
+ * Update a category (admin only)
+ */
+const updateCategory = async (req, res) => {
+  try {
+    const { value } = req.params;
+    const { label, description, order, isActive } = req.body;
+    const updateData = {};
+    if (label !== undefined) updateData.label = label.trim();
+    if (description !== undefined) updateData.description = description.trim();
+    if (order !== undefined) updateData.order = order;
+    if (isActive !== undefined) updateData.isActive = isActive;
+    const category = await db.updateCategory(value, updateData);
+    if (!category) {
+      return res.status(404).json({ error: 'Category not found' });
+    }
+    res.status(200).json(category);
+  } catch (error) {
+    logger.error('[/Agents/Marketplace] Error updating category:', error);
+    res.status(500).json({ error: 'Failed to update category' });
+  }
+};
+
+/**
+ * Delete a category (admin only)
+ */
+const deleteCategory = async (req, res) => {
+  try {
+    const { value } = req.params;
+    const deleted = await db.deleteCategory(value);
+    if (!deleted) {
+      return res.status(404).json({ error: 'Category not found' });
+    }
+    res.status(204).send();
+  } catch (error) {
+    logger.error('[/Agents/Marketplace] Error deleting category:', error);
+    res.status(500).json({ error: 'Failed to delete category' });
+  }
+};
+
 module.exports = {
   createAgent: createAgentHandler,
   getAgent: getAgentHandler,
@@ -2317,5 +2408,8 @@ module.exports = {
   uploadAgentAvatar: uploadAgentAvatarHandler,
   revertAgentVersion: revertAgentVersionHandler,
   getAgentCategories,
+  createCategory,
+  updateCategory,
+  deleteCategory,
   filterAuthorizedTools,
 };

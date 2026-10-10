@@ -38,6 +38,37 @@ router.use('/tools', configMiddleware, tools);
  * @route GET /agents/categories
  */
 router.get('/categories', configMiddleware, v1.getAgentCategories);
+
+/**
+ * Create a new category (admin only)
+ * @route POST /agents/categories
+ */
+router.post('/categories', configMiddleware, generateCheckAccess({
+  permissionType: PermissionTypes.AGENTS,
+  permissions: [Permissions.USE, Permissions.CREATE],
+  getRoleByName,
+}), v1.createCategory);
+
+/**
+ * Update a category (admin only)
+ * @route PATCH /agents/categories/:value
+ */
+router.patch('/categories/:value', configMiddleware, generateCheckAccess({
+  permissionType: PermissionTypes.AGENTS,
+  permissions: [Permissions.USE, Permissions.EDIT],
+  getRoleByName,
+}), v1.updateCategory);
+
+/**
+ * Delete a category (admin only)
+ * @route DELETE /agents/categories/:value
+ */
+router.delete('/categories/:value', configMiddleware, generateCheckAccess({
+  permissionType: PermissionTypes.AGENTS,
+  permissions: [Permissions.USE, Permissions.DELETE],
+  getRoleByName,
+}), v1.deleteCategory);
+
 /**
  * Creates an agent.
  * @route POST /agents
