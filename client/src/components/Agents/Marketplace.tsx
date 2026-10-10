@@ -4,7 +4,7 @@ import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
 import type t from 'librechat-data-provider';
 import { useGetEndpointsQuery, useGetAgentCategoriesQuery } from '~/data-provider';
 import { Plus, FolderOpen } from 'lucide-react';
-import { Button, Dialog, DialogTrigger } from '@librechat/client';
+import { Button, Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@librechat/client';
 import CategoriesManager from './CategoriesManager';
 import SortDropdown, { SORT_OPTIONS, DEFAULT_SORT_OPTION } from './SortDropdown';
 import { useDocumentTitle, useHasAccess, useLocalize } from '~/hooks';
@@ -161,10 +161,12 @@ const AgentMarketplace: React.FC<AgentMarketplaceProps> = ({ className = '' }) =
                     <FolderOpen className="size-4" aria-hidden="true" />
                   </Button>
                 </DialogTrigger>
-                <CategoriesManager
-                  title={localize('com_agents_categories')}
-                  onCategoriesChange={() => categoriesQuery.refetch()}
-                />
+                <DialogContent className="w-11/12 max-w-2xl max-h-[85vh] overflow-hidden">
+                  <CategoriesManager
+                    title={localize('com_agents_categories')}
+                    onCategoriesChange={() => categoriesQuery.refetch()}
+                  />
+                </DialogContent>
               </Dialog>
             </div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 pb-3">
