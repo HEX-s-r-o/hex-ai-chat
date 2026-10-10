@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Plus, Trash2, Edit2, X, Save, Loader2, FolderOpen } from 'lucide-react';
-import { Button, useToastContext, Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, Input, Textarea, Label } from '@librechat/client';
+import { Button, useToastContext, Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, Input, Textarea, Label, Badge } from '@librechat/client';
 import { useGetAgentCategoriesQuery, useCreateAgentCategoryMutation, useUpdateAgentCategoryMutation, useDeleteAgentCategoryMutation } from '~/data-provider';
 import { useGetStartupConfig } from '~/data-provider';
 import { useLocalize, TranslationKeys } from '~/hooks';
@@ -16,15 +16,10 @@ const initialCategoryForm = {
 };
 
 interface CategoriesManagerProps {
-  /** If true, only show categories the current user created (for personal categories) */
   personalOnly?: boolean;
-  /** Title override */
   title?: string;
-  /** Whether to show the "Create Category" button */
   showCreateButton?: boolean;
-  /** Called when categories change (for parent to refresh) */
   onCategoriesChange?: () => void;
-  /** If true, render content without Dialog wrapper (for use in extraContent) */
   standalone?: boolean;
 }
 
@@ -54,7 +49,7 @@ export function CategoriesManager({
 
   const { data: startupConfig } = useGetStartupConfig();
   const allowUserCategories = startupConfig?.interface?.marketplace?.allowUserCategories !== false;
-  const isAdmin = false; // Could be enhanced with role check
+  const isAdmin = false;
 
   const createMutation = useCreateAgentCategoryMutation({
     onSuccess: () => {
@@ -179,7 +174,7 @@ export function CategoriesManager({
       default: localize('com_ui_category_source_default') || 'Default',
     };
     return (
-      <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-xs', variants[source])}>
+      <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium', variants[source])}>
         {labels[source]}
       </span>
     );
@@ -192,36 +187,32 @@ export function CategoriesManager({
   });
 
   const content = (
-    <div className="w-11/12 max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
-      {standalone ? (
-        <div className="px-6 pt-6 pb-4 border-b border-border-light">
-          <h2 className="text-lg font-semibold text-text-primary">{title || localize('com_agents_categories')}</h2>
-          <p className="text-sm text-text-secondary mt-1">{localize('com_agents_categories_description')}</p>
-        </div>
-      ) : (
-        <DialogHeader>
-          <DialogTitle>{title || localize('com_agents_categories')}</DialogTitle>
-          <DialogDescription>{localize('com_agents_categories_description')}</DialogDescription>
+    <div className="flex flex-col gap-4 p-6 w-full max-w-2xl mx-auto">
+      {!standalone && (
+        <DialogHeader className="px-0 pt-0 pb-2">
+          <DialogTitle className="text-xl font-semibold">{title || localize('com_agents_categories')}</DialogTitle>
+          <DialogDescription className="text-sm text-text-secondary">{localize('com_agents_categories_description')}</DialogDescription>
         </DialogHeader>
       )}
-      <div className="space-y-4 py-4 overflow-y-auto flex-1 min-h-0 pr-1">
-        <div className="flex items-center justify-between">
+
+      <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+        <div className="flex items-center justify-between pb-2">
           {showCreateButton && !editingCategory && !isCreating && (
-            <Button size="sm" variant="outline" onClick={handleCreateCategory}>
-              <Plus className="size-4 mr-2" />
+            <Button size="sm" variant="submit" onClick={handleCreateCategory} className="gap-2">
+              <Plus className="size-4" />
               {localize('com_ui_add_category')}
             </Button>
           )}
         </div>
 
         {editingCategory && (
-          <form onSubmit={handleSubmitCategory} className="space-y-4 p-4 border-border-light border rounded-theme-surface bg-surface-secondary">
-            <div className="text-lg font-medium">
+          <form onSubmit={handleSubmitCategory} className="space-y-4 p-5 border border-border-medium rounded-2xl bg-surface-primary shadow-sm">
+            <div className="text-base font-semibold text-text-primary">
               {isCreating ? localize('com_ui_create_category') : localize('com_ui_edit_category')}
             </div>
             <div className="space-y-3">
               <div>
-                <Label htmlFor="category-value">{localize('com_ui_category_value')}</Label>
+                <Label htmlFor="category-value" className="text-xs font-semibold uppercase tracking-wider text-text-secondary">{localize('com_ui_category_value')}</Label>
                 <Input
                   id="category-value"
                   value={editingCategory.value}
@@ -234,7 +225,7 @@ export function CategoriesManager({
                 <p className="text-xs text-text-muted mt-1">{localize('com_ui_category_value_help')}</p>
               </div>
               <div>
-                <Label htmlFor="category-label">{localize('com_ui_category_label')}</Label>
+                <Label htmlFor="category-label" className="text-xs font-semibold uppercase tracking-wider text-text-secondary">{localize('com_ui_category_label')}</Label>
                 <Input
                   id="category-label"
                   value={editingCategory.label}
@@ -245,19 +236,19 @@ export function CategoriesManager({
                 />
               </div>
               <div>
-                <Label htmlFor="category-description">{localize('com_ui_category_description')}</Label>
+                <Label htmlFor="category-description" className="text-xs font-semibold uppercase tracking-wider text-text-secondary">{localize('com_ui_category_description')}</Label>
                 <Textarea
                   id="category-description"
                   value={editingCategory.description}
                   onChange={(e) => setEditingCategory({ ...editingCategory, description: e.target.value })}
                   placeholder="EU/UK compliance agents"
-                  className="mt-1 min-h-[80px]"
-                  rows={3}
+                  className="mt-1 min-h-[70px]"
+                  rows={2}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-4 pt-1">
                 <div>
-                  <Label htmlFor="category-order">{localize('com_ui_category_order')}</Label>
+                  <Label htmlFor="category-order" className="text-xs font-semibold uppercase tracking-wider text-text-secondary">{localize('com_ui_category_order')}</Label>
                   <Input
                     id="category-order"
                     type="number"
@@ -267,33 +258,33 @@ export function CategoriesManager({
                     min={0}
                   />
                 </div>
-                <div className="flex items-end">
-                  <Label className="flex items-center gap-2 cursor-pointer">
+                <div className="flex items-center pt-5">
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
                     <input
                       type="checkbox"
                       checked={editingCategory.isActive}
                       onChange={(e) => setEditingCategory({ ...editingCategory, isActive: e.target.checked })}
-                      className="size-4"
+                      className="size-4 rounded border-border-medium text-surface-submit focus:ring-surface-submit"
                     />
-                    <span className="text-sm">{localize('com_ui_category_active')}</span>
-                  </Label>
+                    <span className="text-sm font-medium text-text-primary">{localize('com_ui_category_active')}</span>
+                  </label>
                 </div>
               </div>
             </div>
-            <div className="flex justify-end gap-2 mt-4">
-              <Button type="button" variant="outline" onClick={handleCancelCategory}>
-                <X className="size-4 mr-2" />
+            <div className="flex justify-end gap-2 pt-2 border-t border-border-light">
+              <Button type="button" variant="outline" onClick={handleCancelCategory} size="sm">
+                <X className="size-4 mr-1.5" />
                 {localize('com_ui_cancel')}
               </Button>
-              <Button type="submit" disabled={createMutation.isLoading || updateMutation.isLoading}>
+              <Button type="submit" variant="submit" size="sm" disabled={createMutation.isLoading || updateMutation.isLoading}>
                 {createMutation.isLoading || updateMutation.isLoading ? (
                   <>
-                    <Loader2 className="size-4 mr-2 animate-spin" />
+                    <Loader2 className="size-4 mr-1.5 animate-spin" />
                     {localize('com_ui_saving')}
                   </>
                 ) : (
                   <>
-                    <Save className="size-4 mr-2" />
+                    <Save className="size-4 mr-1.5" />
                     {localize('com_ui_save')}
                   </>
                 )}
@@ -303,23 +294,21 @@ export function CategoriesManager({
         )}
 
         {filteredCategories.length > 0 && (
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             {filteredCategories.map((cat) => (
               <div
                 key={cat.value}
-                className={cn(
-                  'flex items-center justify-between p-3 border-border-light border rounded-theme-surface bg-surface-secondary gap-3',
-                )}
+                className="flex items-center justify-between p-3.5 border border-border-light rounded-2xl bg-surface-secondary shadow-2xs gap-3 transition-colors hover:border-border-medium"
               >
                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="font-medium truncate">{getCategoryDisplayName(cat)}</div>
-                  {cat.description && <span className="text-xs text-text-muted truncate hidden sm:inline">{cat.description}</span>}
-                  <span className="text-xs text-text-muted shrink-0">({cat.value})</span>
+                  <div className="font-semibold text-text-primary truncate">{getCategoryDisplayName(cat)}</div>
+                  {cat.description && <span className="text-xs text-text-muted truncate hidden md:inline">{cat.description}</span>}
+                  <span className="text-xs text-text-muted shrink-0 font-mono">({cat.value})</span>
                   {sourceBadge(cat.source)}
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2.5 shrink-0">
                   <span className={cn(
-                    'px-2 py-0.5 text-xs rounded-full',
+                    'px-2.5 py-0.5 text-xs rounded-full font-medium',
                     cat.isActive === false
                       ? 'bg-red-500/10 text-red-500'
                       : 'bg-green-500/10 text-green-500'
@@ -329,7 +318,7 @@ export function CategoriesManager({
                   <Button
                     size="icon-sm"
                     variant="ghost"
-                    className="size-8 text-text-secondary hover:text-text-primary"
+                    className="size-8 text-text-secondary hover:text-text-primary hover:bg-surface-hover"
                     onClick={() => handleEditCategory(cat)}
                     aria-label={localize('com_ui_edit_category')}
                   >
@@ -338,7 +327,7 @@ export function CategoriesManager({
                   <Button
                     size="icon-sm"
                     variant="ghost"
-                    className="size-8 text-text-secondary hover:text-red-500"
+                    className="size-8 text-text-secondary hover:text-red-500 hover:bg-red-500/10"
                     onClick={() => handleDeleteCategory(cat.value)}
                     aria-label={localize('com_ui_delete_category')}
                   >
@@ -351,7 +340,7 @@ export function CategoriesManager({
         )}
 
         {filteredCategories.length === 0 && (
-          <div className="text-center py-8 text-text-secondary">
+          <div className="text-center py-12 text-text-secondary text-sm">
             {personalOnly
               ? localize('com_ui_no_personal_categories')
               : localize('com_ui_no_categories')}
@@ -366,19 +355,9 @@ export function CategoriesManager({
   }
 
   return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button
-          size="icon-sm"
-          variant="outline"
-          className="size-9 shrink-0 transition-none"
-          aria-label={localize('com_agents_categories')}
-        >
-          <FolderOpen className="size-4" aria-hidden="true" />
-        </Button>
-      </DialogTrigger>
+    <DialogContent className="w-11/12 max-w-2xl max-h-[85vh] overflow-hidden p-0">
       {content}
-    </Dialog>
+    </DialogContent>
   );
 }
 
