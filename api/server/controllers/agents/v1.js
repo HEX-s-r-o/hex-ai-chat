@@ -74,6 +74,7 @@ const {
   hasActivePiiPatterns,
   openapiToFunction,
   removeNullishValues,
+  SystemRoles,
 } = require('librechat-data-provider');
 const {
   findPubliclyAccessibleResources,
@@ -2354,6 +2355,11 @@ const getAgentCategories = async (req, res) => {
  */
 const createCategory = async (req, res) => {
   try {
+    const allowUserCategories = req.config?.interfaceConfig?.marketplace?.allowUserCategories !== false;
+    if (req.user?.role !== SystemRoles.ADMIN && !allowUserCategories) {
+      return res.status(403).json({ error: 'User category management is disabled by administrator' });
+    }
+
     const { value, label, description, order } = req.body;
     if (!value || !label) {
       return res.status(400).json({ error: 'value and label are required' });
@@ -2381,6 +2387,11 @@ const createCategory = async (req, res) => {
  */
 const updateCategory = async (req, res) => {
   try {
+    const allowUserCategories = req.config?.interfaceConfig?.marketplace?.allowUserCategories !== false;
+    if (req.user?.role !== SystemRoles.ADMIN && !allowUserCategories) {
+      return res.status(403).json({ error: 'User category management is disabled by administrator' });
+    }
+
     const { value } = req.params;
     const { label, description, order, isActive } = req.body;
     const updateData = {};
@@ -2404,6 +2415,11 @@ const updateCategory = async (req, res) => {
  */
 const deleteCategory = async (req, res) => {
   try {
+    const allowUserCategories = req.config?.interfaceConfig?.marketplace?.allowUserCategories !== false;
+    if (req.user?.role !== SystemRoles.ADMIN && !allowUserCategories) {
+      return res.status(403).json({ error: 'User category management is disabled by administrator' });
+    }
+
     const { value } = req.params;
     const deleted = await db.deleteCategory(value);
     if (!deleted) {
