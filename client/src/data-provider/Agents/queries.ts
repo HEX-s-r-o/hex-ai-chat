@@ -208,11 +208,12 @@ export const useGetAgentVersionsQuery = (
  * Hook for getting agent categories for marketplace tabs
  */
 export const useGetAgentCategoriesQuery = (
+  params?: { includeInactive?: boolean },
   config?: UseQueryOptions<t.TMarketplaceCategory[]>,
 ): QueryObserverResult<t.TMarketplaceCategory[]> => {
   return useQuery<t.TMarketplaceCategory[]>(
-    [QueryKeys.agentCategories],
-    () => dataService.getAgentCategories(),
+    [QueryKeys.agentCategories, params],
+    () => dataService.getAgentCategories(params),
     {
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,

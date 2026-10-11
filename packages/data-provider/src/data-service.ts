@@ -775,8 +775,30 @@ export const revertAgentVersion = ({
 /**
  * Get agent categories with counts for marketplace tabs
  */
-export const getAgentCategories = (): Promise<t.TMarketplaceCategory[]> => {
-  return request.get(endpoints.agents({ path: 'categories' }));
+export const getAgentCategories = (params?: { includeInactive?: boolean }): Promise<t.TMarketplaceCategory[]> => {
+  const query = params?.includeInactive ? '?includeInactive=true' : '';
+  return request.get(endpoints.agents({ path: `categories${query}` }));
+};
+
+/**
+ * Create a new agent category
+ */
+export const createAgentCategory = (params: ag.AgentCategoryCreateParams): Promise<t.TMarketplaceCategory> => {
+  return request.post(endpoints.agents({ path: 'categories' }), params);
+};
+
+/**
+ * Update an agent category
+ */
+export const updateAgentCategory = (params: { value: string; data: ag.AgentCategoryUpdateParams }): Promise<t.TMarketplaceCategory> => {
+  return request.patch(endpoints.agents({ path: `categories/${encodeURIComponent(params.value)}` }), params.data);
+};
+
+/**
+ * Delete an agent category
+ */
+export const deleteAgentCategory = (params: { value: string }): Promise<void> => {
+  return request.delete(endpoints.agents({ path: `categories/${encodeURIComponent(params.value)}` }));
 };
 
 /**

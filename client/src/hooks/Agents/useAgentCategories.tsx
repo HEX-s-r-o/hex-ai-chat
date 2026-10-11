@@ -21,9 +21,10 @@ const useAgentCategories = () => {
   const localize = useLocalize();
 
   // Fetch categories from API
-  const categoriesQuery = useGetAgentCategoriesQuery({
-    staleTime: 1000 * 60 * 15, // 15 minutes
-  });
+  const categoriesQuery = useGetAgentCategoriesQuery(
+    {},
+    { staleTime: 1000 * 60 * 15 }, // 15 minutes
+  );
 
   const categories = useMemo((): ProcessedAgentCategory[] => {
     if (!categoriesQuery.data) return [];

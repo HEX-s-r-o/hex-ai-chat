@@ -61,6 +61,29 @@ export function createAgentCategoryMethods(mongoose: typeof import('mongoose')):
   }
 
   /**
+   * Get ALL categories (active and inactive) with agent counts
+   * @returns Categories with agent counts, including inactive ones
+   */
+  async function getAllCategoriesWithCounts(): Promise<(IAgentCategory & { agentCount: number })[]> {
+    const Agent = mongoose.models.Agent;
+
+    const [categoryCounts, categories] = await Promise.all([
+      Agent.aggregate([
+        { $match: { category: { $exists: true, $ne: null } } },
+        { $group: { _id: '$category', count: { $sum: 1 } } },
+      ]),
+      getAllCategories(),
+    ]);
+
+    const countMap = new Map(categoryCounts.map((c) => [c._id, c.count]));
+
+    return categories.map((category) => ({
+      ...category,
+      agentCount: countMap.get(category.value) || (0 as number),
+    })) as (IAgentCategory & { agentCount: number })[];
+  }
+
+  /**
    * Get valid category values for Agent model validation
    * @returns Array of valid category values
    */
@@ -285,6 +308,7 @@ export function createAgentCategoryMethods(mongoose: typeof import('mongoose')):
     updateCategory,
     deleteCategory,
     findCategoryById,
+    getAllCategoriesWithCounts,
     getAllCategories,
     ensureDefaultCategories,
   };

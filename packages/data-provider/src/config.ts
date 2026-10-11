@@ -2723,6 +2723,22 @@ export const interfaceSchema = z
          *  marketplace request; the count is also how many automatic attempts there are.
          *  An empty array leaves only the manual Retry. Omit for LibreChat's sequence. */
         retryDelaysMs: z.array(z.number().int().min(0).max(600_000)).max(20).optional(),
+        /** Whether non-admin users are allowed to create/manage custom categories */
+        allowUserCategories: z.boolean().optional(),
+        /** Optional custom agent categories. If provided, these replace the built-in
+         *  default categories. Each category needs a unique value, a label (can be a
+         *  localization key like 'com_agents_category_finance'), optional description,
+         *  and optional order for sorting. */
+        agentCategories: z
+          .array(
+            z.object({
+              value: z.string().trim().min(1),
+              label: z.string().trim().min(1),
+              description: z.string().optional(),
+              order: z.number().int().min(0).optional(),
+            }),
+          )
+          .optional(),
       })
       .optional(),
     fileSearch: z.boolean().optional(),
@@ -2933,6 +2949,7 @@ export const interfaceSchema = z
     },
     marketplace: {
       use: false,
+      allowUserCategories: true,
     },
     mcpServers: {
       use: true,

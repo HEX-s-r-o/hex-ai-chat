@@ -1250,6 +1250,26 @@ export type AgentUpdateParams = {
 >;
 
 /**
+ * Parameters for creating a new agent category
+ */
+export type AgentCategoryCreateParams = {
+  value: string;
+  label: string;
+  description?: string;
+  order?: number;
+};
+
+/**
+ * Parameters for updating an agent category
+ */
+export type AgentCategoryUpdateParams = {
+  label?: string;
+  description?: string;
+  order?: number;
+  isActive?: boolean;
+};
+
+/**
  * Sort modes for the marketplace agent list. `'newest'` is the marketplace's own default and
  * the client sends it explicitly: a request that names no mode gets the most-recently-edited
  * order `GET /api/agents` has always served, which the agent selector and the mention menu

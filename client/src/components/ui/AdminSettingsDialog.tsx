@@ -290,6 +290,7 @@ const AdminSettingsDialog: React.FC<AdminSettingsDialogProps> = ({
                     </div>
                   );
                 })}
+                {extraContent}
               </div>
             </div>
 
@@ -311,7 +312,6 @@ const AdminSettingsDialog: React.FC<AdminSettingsDialogProps> = ({
           </form>
         </OGDialogContent>
       </OGDialog>
-      {extraContent}
     </>
   );
 };

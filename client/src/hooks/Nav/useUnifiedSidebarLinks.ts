@@ -4,7 +4,7 @@ import { BarChart3, MessagesSquare } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useUserKeyQuery } from 'librechat-data-provider/react-query';
 import { getConfigDefaults, getEndpointField } from 'librechat-data-provider';
-import type { TEndpointsConfig } from 'librechat-data-provider';
+import type { TEndpointsConfig, TInterfaceConfig } from 'librechat-data-provider';
 import type { NavLink } from '~/common';
 import { useGetEndpointsQuery, useGetStartupConfig, useInsightsAccessQuery } from '~/data-provider';
 import ConversationsSection from '~/components/UnifiedSidebar/ConversationsSection';
@@ -58,7 +58,7 @@ export default function useUnifiedSidebarLinks() {
     keyProvided,
     endpoint,
     endpointType,
-    interfaceConfig,
+    interfaceConfig: interfaceConfig as Partial<TInterfaceConfig> & { marketplace: { allowUserCategories: boolean } },
     endpointsConfig,
     includeHidePanel: false,
   });
