@@ -28,8 +28,10 @@ const HEXLogo: React.FC<HEXLogoProps> = ({ className }) => {
       aria-label="HEX"
       preserveAspectRatio="xMidYMid meet"
     >
-      <style>{
-        `.hex-logo .h-fill { fill: #010202; }
+      <style>{`
+        .hex-logo .st1 { fill: #ab435d; }
+        .hex-logo .st3 { fill: #ffffff; }
+        .hex-logo .h-fill { fill: #010202; }
         @media (prefers-color-scheme: dark) {
           .hex-logo .h-fill { fill: #f8eef2; }
         }`
