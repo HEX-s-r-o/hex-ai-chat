@@ -209,3 +209,91 @@ Run focused Jest tests from the owning workspace, not the entire monorepo. Prefe
 spies over mocked internals; use `mongodb-memory-server` for database queries and the real MCP SDK
 for MCP behavior. Mock only external HTTP APIs or uncontrollable services. For frontend tests use
 the component's colocated `__tests__` and `test/layout-test-utils` where applicable.
+
+## HEX s.r.o. fork-specific workflow
+
+This is the HEX s.r.o. fork of LibreChat (remote `origin` = `HEX-s-r-o/hex-ai-chat`, `upstream` =
+`LibreChat-AI/LibreChat`). Some branch and deployment rules below deliberately override the
+upstream-only guidance above. HEX's primary language is Czech (cs).
+
+### Repository layout
+
+Two related repos are used together:
+
+- `hex-ai-chat` (this repo) — the code fork of LibreChat. Contains branding on
+  `hex/customisation` and the agent-category system on `feat/marketplace-categories-config`.
+- `hex-ai-chat-private` — bind-mounted runtime config (`librechat.yaml`, gitignored `.env`, and
+  helper scripts like `dev.sh`). Contains the master `logo.svg` (1080×580 landscape).
+
+### Branches
+
+- `main` — tracks `upstream/main` (fast-forward) for baseline sync.
+- `hex/customisation` — HEX **branding only** (title, theme, logo, favicons, auth-form fixes).
+  **Never push this upstream** to LibreChat; it is HEX-only. On fresh clones remember
+  `git config remote.upstream.pushurl DISABLED-never-push-to-upstream-LibreChat`.
+- `feat/marketplace-categories-config` — the candidate feature branch for the agent-category
+  system (config + Mongo + UI, admin-enforced permission). Kept clean of branding.
+- `deploy` — **production branch** (single branch used to run everything together in Docker on
+  the VPS). Built by the merge order: `main` → `hex/customisation` →
+  `feat/marketplace-categories-config`. The `api/server/routes/agents/v1.js` merge has one known
+  additive conflict (HEAD's GET route + feature's CRUD routes) that must be resolved to keep both.
+
+### Updating production (rebase method)
+
+Do **not** use `npm run update:deployed` (that is for the prebuilt-image workflow). Update via
+rebase so the `deploy` branch carries the latest HEX code into the built image:
+
+```bash
+git fetch upstream
+git checkout main && git merge upstream/main && git push origin main
+git checkout deploy
+git rebase main
+# re-resolve the additive agents/v1.js conflict if it recurs
+git push --force-with-lease origin deploy
+docker compose -f ./deploy-compose.yml up -d --build
+```
+
+### Docker/VPS deployment
+
+- The `api` service in `deploy-compose.yml` **must** have its `build:` block uncommented
+  (`Dockerfile.multi`, target `api-build`). The default `image:` pulls the prebuilt upstream image
+  which contains none of the HEX code/logo. `api-build` bundles the built `client/dist` + backend;
+  the nginx `client` service proxies `/` and `/api/` to `api:3080`.
+- Data safety: MongoDB and Meilisearch use host bind mounts; `pgdata2` and `librechat-data` are
+  named volumes. **Never run `docker compose down -v`** (it deletes named volumes). For a
+  `librechat.yaml` change, `docker compose restart api` is sufficient and safe; only use
+  `down`+`up -d` (without `-v`) when the compose file, `.env`, or images changed.
+
+### Branding / theming
+
+- `interface.theme` does **not** work on LibreChat v0.8.8 (only in the dev branch), so HEX theming
+  uses a CSS-override file `client/public/assets/hex-theme.css` with `!important` vars (needed to
+  beat ThemeProvider inline styles). Canvas: light `248 238 242`, dark `89 34 49`.
+- The inline login logo lives in `client/src/components/Auth/HEXLogo.tsx`. Transparent background
+  must be preserved. Black glyphs carry class `.h-fill` and adapt with
+  `prefers-color-scheme` + a host `.light/.dark .hex-logo .h-fill` override (`#010202` light,
+  `#f8eef2` dark). The crimson block (`#ab435d`) and white EX glyphs use `.st1`/`.st3` and must be
+  defined inside the component's inline `<style>`.
+- The favicon/PWA icons are rasterized from the private `logo.svg` via `rsvg-convert`, as square
+  canvases with the landscape lockup centered (transparent margins). `maskable-icon.png` (512)
+  adds ~20% safe-zone padding.
+- Brand values: Professionalism, Precision, Expertise, Reliability, Efficient. Defaults should
+  reproduce today's behavior; support light/dark.
+
+### Agent marketplace categories
+
+- Config lives in `interface.marketplace.agentCategories[]` and `allowUserCategories` on
+  `configSchema` (`packages/data-provider/src/config.ts`).
+- Backend `getAgentCategories` merges with precedence: DB custom > YAML > DB defaults. CRUD routes
+  on `POST/PATCH/DELETE /agents/categories` (in `api/server/controllers/agents/v1.js`) refuse
+  non-admins with **403 "User category management is disabled by administrator"** when
+  `allowUserCategories` is false.
+- YAML-defined categories are read-only in the UI ("Managed in YAML") — an infra-as-code boundary.
+  Users create custom categories via the folder icon in the marketplace header.
+- The "Allow user category management" toggle currently persists only in local UI state (not
+  backend) — tracked as a TODO issue.
+
+### Known leftovers / hygiene
+
+Keep stray artifacts out of the repo: a literal empty `*.key` file, the `errors/` folder (local
+error logs), and the read-only `*.key` bind-mount in the sandbox must never be committed.
