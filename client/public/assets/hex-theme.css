@@ -96,3 +96,14 @@
   --surface-menu: 79 29 42 !important;
   --surface-popover: 79 29 42 !important;
 }
+
+/* ── HEX logo (inline HEXLogo.tsx) theme adaptation ─────────────────────────
+   The inline SVG has its own default + `prefers-color-scheme` media query
+   (black #010202 in light, blush #f8eef2 when the OS is dark). These host
+   rules run at higher specificity than the SVG's internal ones, so the app's
+   EXPLICIT light/dark theme always wins; when the user chooses "system", the
+   SVG's media query governs instead. Transparent regions stay transparent.
+   The crimson block (#AB435D) and its white glyphs are unchanged in both modes. */
+.hex-logo .h-fill { fill: #010202; }          /* app/system light */
+.light .hex-logo .h-fill { fill: #010202; }   /* explicit light (beats media query) */
+.dark .hex-logo .h-fill { fill: #f8eef2; }    /* explicit dark  (beats media query) */

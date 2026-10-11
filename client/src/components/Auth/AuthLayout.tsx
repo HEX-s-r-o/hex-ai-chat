@@ -9,6 +9,7 @@ import LegalConsent from './LegalConsent';
 import { Banner } from '../Banners';
 import Footer from './Footer';
 import { cn } from '~/utils';
+import HEXLogo from './HEXLogo';
 
 function AuthLayout({
   children,
@@ -91,12 +92,11 @@ function AuthLayout({
     <div className="bg-surface-primary relative flex min-h-screen flex-col">
       <Banner />
       <BlinkAnimation active={isFetching}>
-        <div className="mt-6 h-10 w-full bg-cover">
-          <img
-            src="assets/logo.svg"
-            className="h-full w-full object-contain"
-            alt={localize('com_ui_logo', { 0: startupConfig?.appTitle ?? 'LibreChat' })}
-          />
+        <div className="mt-6 h-10 w-full">
+          <HEXLogo className="h-full w-full object-contain" />
+          <span className="sr-only">
+            {localize('com_ui_logo', { 0: startupConfig?.appTitle ?? 'LibreChat' })}
+          </span>
         </div>
       </BlinkAnimation>
       <DisplayError />
