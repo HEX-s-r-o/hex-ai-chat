@@ -264,6 +264,34 @@ docker compose -f ./deploy-compose.yml up -d --build
   `librechat.yaml` change, `docker compose restart api` is sufficient and safe; only use
   `down`+`up -d` (without `-v`) when the compose file, `.env`, or images changed.
 
+**Always use `-f ./deploy-compose.yml` on the VPS — never the dev `docker-compose.yml`.** The two
+files point at different images:
+
+- `docker-compose.yml` (dev) → api uses stock `librechat-dev:latest` (no HEX code) and
+  `container_name: LibreChat`.
+- `deploy-compose.yml` (production) → api uses uncommented `build:` (`Dockerfile.multi`,
+  `api-build`) and `container_name: LibreChat-API`. **This is the only file that ships the HEX
+  code/logo/categories.**
+
+**Never run `docker compose ... up -d --no-build api`.** `--no-build` means "use whatever image is
+named/available", so it silently reverts the api to the stock image and removes your HEX build.
+Instead:
+
+- Only `.env`/`librechat.yaml` changed → `docker compose -f ./deploy-compose.yml up -d api`
+  (picks up the file, keeps the existing image) or `... restart api` for a config-only change.
+- Code changed / need a fresh build → `docker compose -f ./deploy-compose.yml up -d --build api`.
+- If you accidentally ran the dev file, clean up the stray dev container (`docker rm -f LibreChat`)
+  and re-run the deploy build so `LibreChat-API` owns port 3080 again.
+
+**Cloudflare Access + edge cache gotcha:** the VPS front is tunneled via `cloudflared`. Static
+assets under `/assets/*` are gated by Cloudflare Access (returns 302 to
+`/cdn-cgi/access/login/...`), which makes browsers silently keep cached/old favicons and icons.
+If icons look stale after a correct rebuild, (1) add an Access **Bypass** application/path for
+`assets/*` (subdomain `2mozek`, domain `healthexpansion.eu`), and (2) **Custom Purge** the Cloudflare
+cache for the specific asset URLs (purge does not always update an installed PWA icon — reinstall
+the PWA or update its service worker). The api itself serving the right bytes (`200 image/png`) is
+proof the problem is upstream.
+
 ### Branding / theming
 
 - `interface.theme` does **not** work on LibreChat v0.8.8 (only in the dev branch), so HEX theming
