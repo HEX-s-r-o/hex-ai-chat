@@ -283,6 +283,15 @@ Instead:
 - If you accidentally ran the dev file, clean up the stray dev container (`docker rm -f LibreChat`)
   and re-run the deploy build so `LibreChat-API` owns port 3080 again.
 
+Quick reference — which VPS command for which change:
+
+| Situation | Command |
+|-----------|---------|
+| `.env` changed | `docker compose -f ./deploy-compose.yml up -d api` |
+| `librechat.yaml` changed (bind-mounted) | `docker compose -f ./deploy-compose.yml restart api` |
+| Code / images changed | `docker compose -f ./deploy-compose.yml up -d --build api` |
+| Never | `docker compose -f docker-compose.yml ...` or `... --no-build ...` |
+
 **Cloudflare Access + edge cache gotcha:** the VPS front is tunneled via `cloudflared`. Static
 assets under `/assets/*` are gated by Cloudflare Access (returns 302 to
 `/cdn-cgi/access/login/...`), which makes browsers silently keep cached/old favicons and icons.
