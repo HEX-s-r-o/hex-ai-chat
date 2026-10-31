@@ -7,6 +7,9 @@ jest.mock('@librechat/api', () => ({
   limiterCache: jest.fn(),
   createTwoFactorManagementLimiter: jest.fn(() => (req, res, next) => next()),
   createSetBalanceConfig: jest.fn(() => (req, res, next) => next()),
+  createDashboardAuthRouter: jest.fn(() => (req, res, next) => next()),
+  createDashboardRuntimeResolver: jest.fn(),
+  createDashboardUserLookup: jest.fn(),
   forceRefreshCloudFrontAuthCookies: (...args) => mockForceRefreshCloudFrontAuthCookies(...args),
 }));
 
