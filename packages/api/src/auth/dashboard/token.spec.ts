@@ -1,7 +1,7 @@
 import { verify, createPublicKey } from 'crypto';
+import { decodeJwt, generateTestEd25519 } from './dashboard.helper';
 import { loadDashboardKeyRing } from './keys';
 import { mintDashboardToken } from './token';
-import { decodeJwt, generateTestEd25519 } from './dashboard.helper';
 
 const a = generateTestEd25519();
 const b = generateTestEd25519();
@@ -79,7 +79,10 @@ describe('mintDashboardToken', () => {
 
   it('gives every token a unique jti', () => {
     const jtis = new Set(
-      Array.from({ length: 50 }, () => decodeJwt(mintDashboardToken(params('kid-a')).token).claims.jti),
+      Array.from(
+        { length: 50 },
+        () => decodeJwt(mintDashboardToken(params('kid-a')).token).claims.jti,
+      ),
     );
     expect(jtis.size).toBe(50);
   });

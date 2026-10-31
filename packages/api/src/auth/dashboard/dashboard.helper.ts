@@ -1,10 +1,10 @@
 import { generateKeyPairSync } from 'crypto';
-import type { KeyObject } from 'crypto';
 import type {
   DashboardCodeRecord,
   CreateDashboardCodeData,
   ConsumeDashboardCodeData,
 } from '@librechat/data-schemas';
+import type { KeyObject } from 'crypto';
 import type { DashboardCodeStore } from './service';
 
 /** Test-only helpers. Keys and secrets are generated per run; nothing here is a real credential. */

@@ -1,7 +1,7 @@
 import { logger } from '@librechat/data-schemas';
 import type { DashboardRuntimeDeps } from './config';
-import { createDashboardRuntimeResolver } from './config';
 import { createFakeStore, generateTestEd25519 } from './dashboard.helper';
+import { createDashboardRuntimeResolver } from './config';
 
 jest.mock('@librechat/data-schemas', () => ({
   ...jest.requireActual('@librechat/data-schemas'),
@@ -45,7 +45,10 @@ describe('createDashboardRuntimeResolver', () => {
     if (runtime.status === 'ready') {
       expect(runtime.verifyCredential(`Bearer ${SECRET}`)).toBe(true);
       expect(runtime.verifyCredential('Bearer wrong')).toBe(false);
-      expect(runtime.limits).toEqual({ codeRequestsPerFiveMinutes: 10, exchangeRequestsPerMinute: 60 });
+      expect(runtime.limits).toEqual({
+        codeRequestsPerFiveMinutes: 10,
+        exchangeRequestsPerMinute: 60,
+      });
     }
   });
 
@@ -56,7 +59,9 @@ describe('createDashboardRuntimeResolver', () => {
       DASHBOARD_JWT_KEYS: JSON.stringify({ 'kid-1': key.privatePem, 'kid-2': second.privatePem }),
     };
     expect((await resolver({ ...goodSettings, activeKid: 'kid-2' }, env)()).status).toBe('ready');
-    expect((await resolver({ ...goodSettings, activeKid: 'missing' }, env)()).status).toBe('unavailable');
+    expect((await resolver({ ...goodSettings, activeKid: 'missing' }, env)()).status).toBe(
+      'unavailable',
+    );
   });
 
   it.each([
@@ -83,13 +88,18 @@ describe('createDashboardRuntimeResolver', () => {
 
   it('applies configured limits and only rebuilds when configuration changes', async () => {
     const env = { ...goodEnv };
-    const resolve = resolver({ ...goodSettings, rateLimits: { exchangeRequestsPerMinute: 5 } }, env);
+    const resolve = resolver(
+      { ...goodSettings, rateLimits: { exchangeRequestsPerMinute: 5 } },
+      env,
+    );
     const first = await resolve();
     expect(await resolve()).toBe(first);
     expect(first.status === 'ready' && first.limits.exchangeRequestsPerMinute).toBe(5);
     env.DASHBOARD_EXCHANGE_SECRET = 't'.repeat(48);
     const rotated = await resolve();
     expect(rotated).not.toBe(first);
-    expect(rotated.status === 'ready' && rotated.verifyCredential(`Bearer ${'t'.repeat(48)}`)).toBe(true);
+    expect(rotated.status === 'ready' && rotated.verifyCredential(`Bearer ${'t'.repeat(48)}`)).toBe(
+      true,
+    );
   });
 });

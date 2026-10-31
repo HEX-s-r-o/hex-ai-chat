@@ -3,14 +3,14 @@ import request from 'supertest';
 import mongoose from 'mongoose';
 import { verify } from 'crypto';
 import { MongoMemoryServer } from 'mongodb-memory-server';
-import { createModels, createMethods } from '@librechat/data-schemas';
 import { DashboardAuthErrorCode } from 'librechat-data-provider';
+import { createModels, createMethods } from '@librechat/data-schemas';
 import type { AllMethods } from '@librechat/data-schemas';
 import type { RequestHandler } from 'express';
+import { createFakeClock, decodeJwt, generateTestEd25519 } from './dashboard.helper';
 import { createDashboardRuntimeResolver } from './config';
 import { createDashboardUserLookup } from './service';
 import { createDashboardAuthRouter } from './routes';
-import { createFakeClock, decodeJwt, generateTestEd25519 } from './dashboard.helper';
 
 jest.mock('@librechat/data-schemas', () => ({
   ...jest.requireActual('@librechat/data-schemas'),
@@ -30,7 +30,9 @@ let env: Record<string, string | undefined>;
 /** Stand-in for requireJwtAuth: trusts a header, but only for users that exist in Mongo. */
 const fakeUserAuth: RequestHandler = async (req, res, next) => {
   const id = req.get('x-test-user');
-  const user = id ? await mongoose.models.User.findOne({ _id: id }).setOptions({ tenantId: undefined }).lean() : null;
+  const user = id
+    ? await mongoose.models.User.findOne({ _id: id }).setOptions({ tenantId: undefined }).lean()
+    : null;
   if (!user) {
     res.sendStatus(401);
     return;
@@ -49,7 +51,10 @@ function buildApp() {
   });
   const app = express();
   app.use(express.json());
-  app.use('/api/auth/dashboard', createDashboardAuthRouter({ getRuntime, userMiddleware: [fakeUserAuth] }));
+  app.use(
+    '/api/auth/dashboard',
+    createDashboardAuthRouter({ getRuntime, userMiddleware: [fakeUserAuth] }),
+  );
   return app;
 }
 
@@ -66,7 +71,10 @@ async function createUser(overrides: Record<string, unknown> = {}): Promise<stri
 const bff = (req: request.Test) => req.set('Authorization', `Bearer ${SECRET}`);
 
 async function obtainCode(app: express.Express, userId: string): Promise<string> {
-  const res = await request(app).post('/api/auth/dashboard/code').set('x-test-user', userId).expect(200);
+  const res = await request(app)
+    .post('/api/auth/dashboard/code')
+    .set('x-test-user', userId)
+    .expect(200);
   return res.body.code as string;
 }
 
@@ -83,7 +91,12 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
-  settings = { enabled: true, issuer: ISSUER, activeKid: 'kid-1', rateLimits: { exchangeRequestsPerMinute: 1000, codeRequestsPerFiveMinutes: 1000 } };
+  settings = {
+    enabled: true,
+    issuer: ISSUER,
+    activeKid: 'kid-1',
+    rateLimits: { exchangeRequestsPerMinute: 1000, codeRequestsPerFiveMinutes: 1000 },
+  };
   env = {
     DASHBOARD_JWT_KEYS: JSON.stringify({ 'kid-1': key.privatePem }),
     DASHBOARD_EXCHANGE_SECRET: SECRET,
@@ -96,7 +109,10 @@ describe('POST /api/auth/dashboard/token', () => {
   it('exchanges a single-use code for a correctly claimed, correctly signed 5 minute JWT', async () => {
     const app = buildApp();
     const userId = await createUser({ role: 'USER' });
-    const issued = await request(app).post('/api/auth/dashboard/code').set('x-test-user', userId).expect(200);
+    const issued = await request(app)
+      .post('/api/auth/dashboard/code')
+      .set('x-test-user', userId)
+      .expect(200);
     expect(issued.body.expires_in).toBe(60);
     expect(issued.headers['cache-control']).toBe('no-store');
 
@@ -135,34 +151,49 @@ describe('POST /api/auth/dashboard/token', () => {
     const app = buildApp();
     const userId = await createUser({ tenantId: 'tenant-a' });
     const code = await obtainCode(app, userId);
-    const res = await bff(request(app).post('/api/auth/dashboard/token')).send({ grant: 'code', code }).expect(200);
+    const res = await bff(request(app).post('/api/auth/dashboard/token'))
+      .send({ grant: 'code', code })
+      .expect(200);
     expect(decodeJwt(res.body.token).claims.tenant_id).toBe('tenant-a');
   });
 
   it('rejects a reused code and revokes the session its first redemption created', async () => {
     const app = buildApp();
     const code = await obtainCode(app, await createUser());
-    const first = await bff(request(app).post('/api/auth/dashboard/token')).send({ grant: 'code', code }).expect(200);
-    const replay = await bff(request(app).post('/api/auth/dashboard/token')).send({ grant: 'code', code }).expect(400);
-    expect(replay.body).toEqual({ code: DashboardAuthErrorCode.CodeInvalid, message: 'Code is invalid or expired.' });
+    const first = await bff(request(app).post('/api/auth/dashboard/token'))
+      .send({ grant: 'code', code })
+      .expect(200);
+    const replay = await bff(request(app).post('/api/auth/dashboard/token'))
+      .send({ grant: 'code', code })
+      .expect(400);
+    expect(replay.body).toEqual({
+      code: DashboardAuthErrorCode.CodeInvalid,
+      message: 'Code is invalid or expired.',
+    });
     const row = await mongoose.models.DashboardCode.findOne({}).lean();
     expect(row?.revokedAt).toBeInstanceOf(Date);
     // The handle from the first redemption is already revoked, so revoking again reports nothing new.
-    await bff(request(app).post('/api/auth/dashboard/revoke')).send({ session_handle: first.body.session_handle }).expect(200);
+    await bff(request(app).post('/api/auth/dashboard/revoke'))
+      .send({ session_handle: first.body.session_handle })
+      .expect(200);
   });
 
   it('rejects an expired code', async () => {
     const app = buildApp();
     const code = await obtainCode(app, await createUser());
     clock.advanceSeconds(61);
-    const res = await bff(request(app).post('/api/auth/dashboard/token')).send({ grant: 'code', code }).expect(400);
+    const res = await bff(request(app).post('/api/auth/dashboard/token'))
+      .send({ grant: 'code', code })
+      .expect(400);
     expect(res.body.code).toBe(DashboardAuthErrorCode.CodeInvalid);
   });
 
   it('rejects unknown and malformed codes identically', async () => {
     const app = buildApp();
     for (const code of ['A'.repeat(43), 'short', 12, null]) {
-      const res = await bff(request(app).post('/api/auth/dashboard/token')).send({ grant: 'code', code }).expect(400);
+      const res = await bff(request(app).post('/api/auth/dashboard/token'))
+        .send({ grant: 'code', code })
+        .expect(400);
       expect(res.body.code).toBe(DashboardAuthErrorCode.CodeInvalid);
     }
   });
@@ -172,23 +203,30 @@ describe('POST /api/auth/dashboard/token', () => {
     const code = await obtainCode(app, await createUser());
     for (const auth of [undefined, 'Bearer nope', `Basic ${SECRET}`, `Bearer ${SECRET}x`]) {
       const req = request(app).post('/api/auth/dashboard/token');
-      const res = await (auth ? req.set('Authorization', auth) : req).send({ grant: 'code', code }).expect(401);
+      const res = await (auth ? req.set('Authorization', auth) : req)
+        .send({ grant: 'code', code })
+        .expect(401);
       expect(res.body.code).toBe(DashboardAuthErrorCode.ClientUnauthorized);
       expect(res.headers['www-authenticate']).toBe('Bearer');
     }
     // The code survived those attempts and still redeems.
-    await bff(request(app).post('/api/auth/dashboard/token')).send({ grant: 'code', code }).expect(200);
+    await bff(request(app).post('/api/auth/dashboard/token'))
+      .send({ grant: 'code', code })
+      .expect(200);
   });
 
   it('does not accept a browser session or chat bearer as the BFF credential', async () => {
     const app = buildApp();
     const userId = await createUser();
     const code = await obtainCode(app, userId);
-    await request(app)
+    const res = await request(app)
       .post('/api/auth/dashboard/token')
       .set('x-test-user', userId)
       .send({ grant: 'code', code })
       .expect(401);
+    expect(res.body.code).toBe(DashboardAuthErrorCode.ClientUnauthorized);
+    // The rejected attempt did not spend the code.
+    expect((await mongoose.models.DashboardCode.findOne({}).lean())?.consumedAt).toBeUndefined();
   });
 
   it('accepts the previous credential during rotation and the new one after', async () => {
@@ -196,22 +234,33 @@ describe('POST /api/auth/dashboard/token', () => {
     env.DASHBOARD_EXCHANGE_SECRET_PREVIOUS = SECRET;
     const app = buildApp();
     const userId = await createUser();
-    await bff(request(app).post('/api/auth/dashboard/token')).send({ grant: 'code', code: await obtainCode(app, userId) }).expect(200);
-    await request(app)
+    const withPrevious = await bff(request(app).post('/api/auth/dashboard/token'))
+      .send({ grant: 'code', code: await obtainCode(app, userId) })
+      .expect(200);
+    const withCurrent = await request(app)
       .post('/api/auth/dashboard/token')
       .set('Authorization', `Bearer ${'n'.repeat(48)}`)
       .send({ grant: 'code', code: await obtainCode(app, userId) })
       .expect(200);
+    expect(decodeJwt(withPrevious.body.token).claims.sub).toBe(userId);
+    expect(decodeJwt(withCurrent.body.token).claims.sub).toBe(userId);
   });
 
   it('refuses a user disabled between issue and redeem, and the code cannot be retried', async () => {
     const app = buildApp();
     const userId = await createUser();
     const code = await obtainCode(app, userId);
-    await mongoose.models.User.updateOne({ _id: userId }, { $set: { agentTriggerDeletionStartedAt: new Date() } });
-    const res = await bff(request(app).post('/api/auth/dashboard/token')).send({ grant: 'code', code }).expect(403);
+    await mongoose.models.User.updateOne(
+      { _id: userId },
+      { $set: { agentTriggerDeletionStartedAt: new Date() } },
+    );
+    const res = await bff(request(app).post('/api/auth/dashboard/token'))
+      .send({ grant: 'code', code })
+      .expect(403);
     expect(res.body.code).toBe(DashboardAuthErrorCode.PrincipalForbidden);
-    const retry = await bff(request(app).post('/api/auth/dashboard/token')).send({ grant: 'code', code }).expect(400);
+    const retry = await bff(request(app).post('/api/auth/dashboard/token'))
+      .send({ grant: 'code', code })
+      .expect(400);
     expect(retry.body.code).toBe(DashboardAuthErrorCode.CodeInvalid);
   });
 
@@ -220,7 +269,10 @@ describe('POST /api/auth/dashboard/token', () => {
     const userId = await createUser();
     const code = await obtainCode(app, userId);
     await mongoose.models.User.deleteOne({ _id: userId });
-    await bff(request(app).post('/api/auth/dashboard/token')).send({ grant: 'code', code }).expect(403);
+    const res = await bff(request(app).post('/api/auth/dashboard/token'))
+      .send({ grant: 'code', code })
+      .expect(403);
+    expect(res.body.code).toBe(DashboardAuthErrorCode.PrincipalForbidden);
   });
 
   it('refuses a tenant mismatch: user moved tenants after the code was issued', async () => {
@@ -233,9 +285,13 @@ describe('POST /api/auth/dashboard/token', () => {
       { _id: new mongoose.Types.ObjectId(userId) },
       { $set: { tenantId: 'tenant-b' } },
     );
-    const moved = await mongoose.models.User.collection.findOne({ _id: new mongoose.Types.ObjectId(userId) });
+    const moved = await mongoose.models.User.collection.findOne({
+      _id: new mongoose.Types.ObjectId(userId),
+    });
     expect(moved?.tenantId).toBe('tenant-b');
-    const res = await bff(request(app).post('/api/auth/dashboard/token')).send({ grant: 'code', code }).expect(403);
+    const res = await bff(request(app).post('/api/auth/dashboard/token'))
+      .send({ grant: 'code', code })
+      .expect(403);
     expect(res.body.code).toBe(DashboardAuthErrorCode.PrincipalForbidden);
   });
 
@@ -244,7 +300,9 @@ describe('POST /api/auth/dashboard/token', () => {
     const userId = await createUser({ tenantId: 'tenant-b' });
     const code = await obtainCode(app, userId);
     settings.expectedTenantId = 'tenant-a';
-    const res = await bff(request(app).post('/api/auth/dashboard/token')).send({ grant: 'code', code }).expect(403);
+    const res = await bff(request(app).post('/api/auth/dashboard/token'))
+      .send({ grant: 'code', code })
+      .expect(403);
     expect(res.body.code).toBe(DashboardAuthErrorCode.PrincipalForbidden);
     await request(app).post('/api/auth/dashboard/code').set('x-test-user', userId).expect(403);
   });
@@ -262,7 +320,9 @@ describe('POST /api/auth/dashboard/token', () => {
     const code = await obtainCode(app, await createUser());
     const statuses = (
       await Promise.all(
-        [1, 2, 3, 4].map(() => bff(request(app).post('/api/auth/dashboard/token')).send({ grant: 'code', code })),
+        [1, 2, 3, 4].map(() =>
+          bff(request(app).post('/api/auth/dashboard/token')).send({ grant: 'code', code }),
+        ),
       )
     ).map((r) => r.status);
     expect(statuses.filter((s) => s === 200)).toHaveLength(1);
@@ -271,8 +331,14 @@ describe('POST /api/auth/dashboard/token', () => {
 
 describe('POST /api/auth/dashboard/code', () => {
   it('requires an authenticated chat user', async () => {
-    await request(buildApp()).post('/api/auth/dashboard/code').expect(401);
-    await request(buildApp()).post('/api/auth/dashboard/code').set('x-test-user', String(new mongoose.Types.ObjectId())).expect(401);
+    const anonymous = await request(buildApp()).post('/api/auth/dashboard/code').expect(401);
+    const unknown = await request(buildApp())
+      .post('/api/auth/dashboard/code')
+      .set('x-test-user', String(new mongoose.Types.ObjectId()))
+      .expect(401);
+    expect(anonymous.body).not.toHaveProperty('code');
+    expect(unknown.body).not.toHaveProperty('code');
+    expect(await mongoose.models.DashboardCode.countDocuments()).toBe(0);
   });
 
   it('rate limits per user with a stable code', async () => {
@@ -281,7 +347,10 @@ describe('POST /api/auth/dashboard/code', () => {
     const userId = await createUser();
     await request(app).post('/api/auth/dashboard/code').set('x-test-user', userId).expect(200);
     await request(app).post('/api/auth/dashboard/code').set('x-test-user', userId).expect(200);
-    const res = await request(app).post('/api/auth/dashboard/code').set('x-test-user', userId).expect(429);
+    const res = await request(app)
+      .post('/api/auth/dashboard/code')
+      .set('x-test-user', userId)
+      .expect(429);
     expect(res.body.code).toBe(DashboardAuthErrorCode.RateLimited);
   });
 });
@@ -290,13 +359,24 @@ describe('POST /api/auth/dashboard/revoke', () => {
   it('revokes a handle for the BFF only, idempotently', async () => {
     const app = buildApp();
     const code = await obtainCode(app, await createUser());
-    const { body } = await bff(request(app).post('/api/auth/dashboard/token')).send({ grant: 'code', code }).expect(200);
-    await request(app).post('/api/auth/dashboard/revoke').send({ session_handle: body.session_handle }).expect(401);
-    await bff(request(app).post('/api/auth/dashboard/revoke')).send({ session_handle: body.session_handle }).expect(200);
-    await bff(request(app).post('/api/auth/dashboard/revoke')).send({ session_handle: body.session_handle }).expect(200);
+    const { body } = await bff(request(app).post('/api/auth/dashboard/token'))
+      .send({ grant: 'code', code })
+      .expect(200);
+    await request(app)
+      .post('/api/auth/dashboard/revoke')
+      .send({ session_handle: body.session_handle })
+      .expect(401);
+    await bff(request(app).post('/api/auth/dashboard/revoke'))
+      .send({ session_handle: body.session_handle })
+      .expect(200);
+    await bff(request(app).post('/api/auth/dashboard/revoke'))
+      .send({ session_handle: body.session_handle })
+      .expect(200);
     const row = await mongoose.models.DashboardCode.findOne({}).lean();
     expect(row?.revokedAt).toBeInstanceOf(Date);
-    await bff(request(app).post('/api/auth/dashboard/revoke')).send({ session_handle: 'bad' }).expect(400);
+    await bff(request(app).post('/api/auth/dashboard/revoke'))
+      .send({ session_handle: 'bad' })
+      .expect(400);
   });
 });
 
@@ -314,7 +394,10 @@ describe('configuration states', () => {
     env.DASHBOARD_JWT_KEYS = '{"kid-1":"junk"}';
     const app = buildApp();
     const userId = await createUser();
-    const res = await request(app).post('/api/auth/dashboard/code').set('x-test-user', userId).expect(503);
+    const res = await request(app)
+      .post('/api/auth/dashboard/code')
+      .set('x-test-user', userId)
+      .expect(503);
     expect(res.body.code).toBe(DashboardAuthErrorCode.Unavailable);
     expect(await mongoose.models.DashboardCode.countDocuments()).toBe(0);
   });
@@ -323,9 +406,16 @@ describe('configuration states', () => {
     const app = buildApp();
     const code = await obtainCode(app, await createUser());
     await mongoose.models.DashboardCode.collection.drop();
-    const spy = jest.spyOn(methods, 'consumeDashboardCode').mockRejectedValueOnce(new Error('mongo secret connection string'));
-    const res = await bff(request(app).post('/api/auth/dashboard/token')).send({ grant: 'code', code }).expect(500);
-    expect(res.body).toEqual({ code: DashboardAuthErrorCode.Internal, message: 'Dashboard authentication failed.' });
+    const spy = jest
+      .spyOn(methods, 'consumeDashboardCode')
+      .mockRejectedValueOnce(new Error('mongo secret connection string'));
+    const res = await bff(request(app).post('/api/auth/dashboard/token'))
+      .send({ grant: 'code', code })
+      .expect(500);
+    expect(res.body).toEqual({
+      code: DashboardAuthErrorCode.Internal,
+      message: 'Dashboard authentication failed.',
+    });
     expect(JSON.stringify(res)).not.toContain('mongo secret');
     spy.mockRestore();
   });
@@ -334,14 +424,21 @@ describe('configuration states', () => {
 describe('rotation', () => {
   it('signs with the newly active kid while the old public key stays valid for tokens already issued', async () => {
     const second = generateTestEd25519();
-    env.DASHBOARD_JWT_KEYS = JSON.stringify({ 'kid-1': key.privatePem, 'kid-2': second.privatePem });
+    env.DASHBOARD_JWT_KEYS = JSON.stringify({
+      'kid-1': key.privatePem,
+      'kid-2': second.privatePem,
+    });
     const app1 = buildApp();
     const userId = await createUser();
-    const before = await bff(request(app1).post('/api/auth/dashboard/token')).send({ grant: 'code', code: await obtainCode(app1, userId) }).expect(200);
+    const before = await bff(request(app1).post('/api/auth/dashboard/token'))
+      .send({ grant: 'code', code: await obtainCode(app1, userId) })
+      .expect(200);
 
     settings.activeKid = 'kid-2';
     const app2 = buildApp();
-    const after = await bff(request(app2).post('/api/auth/dashboard/token')).send({ grant: 'code', code: await obtainCode(app2, userId) }).expect(200);
+    const after = await bff(request(app2).post('/api/auth/dashboard/token'))
+      .send({ grant: 'code', code: await obtainCode(app2, userId) })
+      .expect(200);
 
     const b = decodeJwt(before.body.token);
     const a = decodeJwt(after.body.token);
@@ -355,16 +452,33 @@ describe('rotation', () => {
 
 describe('logging hygiene', () => {
   it('never logs secrets, codes, tokens or identifiers', async () => {
-    const { logger } = jest.requireMock('@librechat/data-schemas') as { logger: Record<string, jest.Mock> };
+    const { logger } = jest.requireMock('@librechat/data-schemas') as {
+      logger: Record<string, jest.Mock>;
+    };
     Object.values(logger).forEach((fn) => fn.mockClear());
     const app = buildApp();
     const userId = await createUser();
     const code = await obtainCode(app, userId);
-    const ok = await bff(request(app).post('/api/auth/dashboard/token')).send({ grant: 'code', code }).expect(200);
-    await bff(request(app).post('/api/auth/dashboard/token')).send({ grant: 'code', code }).expect(400);
-    await request(app).post('/api/auth/dashboard/token').set('Authorization', 'Bearer wrong').send({ grant: 'code', code }).expect(401);
+    const ok = await bff(request(app).post('/api/auth/dashboard/token'))
+      .send({ grant: 'code', code })
+      .expect(200);
+    await bff(request(app).post('/api/auth/dashboard/token'))
+      .send({ grant: 'code', code })
+      .expect(400);
+    await request(app)
+      .post('/api/auth/dashboard/token')
+      .set('Authorization', 'Bearer wrong')
+      .send({ grant: 'code', code })
+      .expect(401);
     const logged = JSON.stringify(Object.values(logger).map((fn) => fn.mock.calls));
-    for (const secret of [SECRET, code, ok.body.token, ok.body.session_handle, userId, key.privatePem.split('\n')[1]]) {
+    for (const secret of [
+      SECRET,
+      code,
+      ok.body.token,
+      ok.body.session_handle,
+      userId,
+      key.privatePem.split('\n')[1],
+    ]) {
       expect(logged).not.toContain(secret);
     }
   });

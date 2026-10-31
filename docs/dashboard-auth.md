@@ -151,6 +151,9 @@ console.log('# dashboard trusted key:', JSON.stringify({'dash-local-1':publicKey
 " > /tmp/dashboard-local.env   # keep outside the repo; do not commit
 ```
 
+Paste those `DASHBOARD_*` lines into your local, git-ignored `.env` (do not `source` the file: the JSON
+value is not shell-safe). Use the printed public key as the dashboard's trusted key for `dash-local-1`.
+
 Add to `librechat.yaml` (local copy):
 
 ```yaml
@@ -159,7 +162,7 @@ dashboardAuth:
   issuer: 'http://localhost:3080'
 ```
 
-Start chat bound to localhost with the env file loaded, sign in as a local test user, then:
+Start chat bound to localhost, sign in as a local test user, then:
 
 ```bash
 # 2. As the signed-in user (bearer from the browser session): request a code

@@ -6,7 +6,12 @@ import {
   DASHBOARD_MAX_TOKEN_TTL_SECONDS,
 } from 'librechat-data-provider';
 import type { AppConfig } from '@librechat/data-schemas';
-import type { DashboardAuthService, DashboardCodeStore, DashboardServiceConfig, DashboardUser } from './service';
+import type {
+  DashboardAuthService,
+  DashboardCodeStore,
+  DashboardServiceConfig,
+  DashboardUser,
+} from './service';
 import { createDashboardCredentialVerifier, DashboardCredentialError } from './credential';
 import { loadDashboardKeyRing, DashboardKeyError } from './keys';
 import { createDashboardAuthService } from './service';
@@ -55,7 +60,9 @@ const UNAVAILABLE_RUNTIME: DashboardRuntime = { status: 'unavailable' };
  * nothing is issued, so a misconfiguration can never degrade into weaker auth. Only a reason code
  * is logged, once per distinct configuration.
  */
-export function createDashboardRuntimeResolver(deps: DashboardRuntimeDeps): () => Promise<DashboardRuntime> {
+export function createDashboardRuntimeResolver(
+  deps: DashboardRuntimeDeps,
+): () => Promise<DashboardRuntime> {
   const env = deps.env ?? process.env;
   let cachedSignature: string | undefined;
   let cachedRuntime: DashboardRuntime = DISABLED_RUNTIME;
@@ -88,7 +95,9 @@ export function createDashboardRuntimeResolver(deps: DashboardRuntimeDeps): () =
     return cachedRuntime;
   };
 
-  function build(settings: NonNullable<NonNullable<AppConfig['config']>['dashboardAuth']>): DashboardRuntime {
+  function build(
+    settings: NonNullable<NonNullable<AppConfig['config']>['dashboardAuth']>,
+  ): DashboardRuntime {
     try {
       if (!settings.issuer) {
         throw new Error('ISSUER_MISSING');
@@ -124,12 +133,12 @@ export function createDashboardRuntimeResolver(deps: DashboardRuntimeDeps): () =
         limits: { ...DEFAULT_LIMITS, ...settings.rateLimits },
       };
     } catch (error) {
-      const reason =
-        error instanceof DashboardKeyError || error instanceof DashboardCredentialError
-          ? error.code
-          : error instanceof Error && error.message === 'ISSUER_MISSING'
-            ? 'ISSUER_MISSING'
-            : 'UNEXPECTED';
+      let reason = 'UNEXPECTED';
+      if (error instanceof DashboardKeyError || error instanceof DashboardCredentialError) {
+        reason = error.code;
+      } else if (error instanceof Error && error.message === 'ISSUER_MISSING') {
+        reason = 'ISSUER_MISSING';
+      }
       logger.error('[dashboardAuth] disabled by invalid configuration', { reason });
       return UNAVAILABLE_RUNTIME;
     }

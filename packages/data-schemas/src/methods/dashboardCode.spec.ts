@@ -1,8 +1,8 @@
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import type { DashboardCodeMethods } from './dashboardCode';
-import { createDashboardCodeMethods } from './dashboardCode';
 import { createDashboardCodeModel } from '~/models/dashboardCode';
+import { createDashboardCodeMethods } from './dashboardCode';
 
 let mongoServer: MongoMemoryServer;
 let methods: DashboardCodeMethods;
@@ -10,7 +10,9 @@ let methods: DashboardCodeMethods;
 const NOW = new Date('2026-01-01T00:00:00.000Z');
 const plus = (seconds: number) => new Date(NOW.getTime() + seconds * 1000);
 
-function codeData(overrides: Partial<Parameters<DashboardCodeMethods['createDashboardCode']>[0]> = {}) {
+function codeData(
+  overrides: Partial<Parameters<DashboardCodeMethods['createDashboardCode']>[0]> = {},
+) {
   return {
     codeHash: 'hash-a',
     userId: 'user-1',
@@ -21,7 +23,9 @@ function codeData(overrides: Partial<Parameters<DashboardCodeMethods['createDash
   };
 }
 
-function consumeData(overrides: Partial<Parameters<DashboardCodeMethods['consumeDashboardCode']>[0]> = {}) {
+function consumeData(
+  overrides: Partial<Parameters<DashboardCodeMethods['consumeDashboardCode']>[0]> = {},
+) {
   return {
     codeHash: 'hash-a',
     now: NOW,

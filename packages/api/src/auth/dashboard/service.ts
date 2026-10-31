@@ -1,5 +1,5 @@
-import { SYSTEM_TENANT_ID, logger, runAsSystem } from '@librechat/data-schemas';
 import { DashboardAuthErrorCode } from 'librechat-data-provider';
+import { SYSTEM_TENANT_ID, logger, runAsSystem } from '@librechat/data-schemas';
 import type { DashboardCodeMethods } from '@librechat/data-schemas';
 import type { DashboardKeyRing } from './keys';
 import {
@@ -60,7 +60,9 @@ export type DashboardResult<T> =
   | { ok: true; value: T }
   | { ok: false; error: { code: DashboardAuthErrorCode } };
 
-const fail = (code: DashboardAuthErrorCode): { ok: false; error: { code: DashboardAuthErrorCode } } => ({
+const fail = (
+  code: DashboardAuthErrorCode,
+): { ok: false; error: { code: DashboardAuthErrorCode } } => ({
   ok: false,
   error: { code },
 });
@@ -210,7 +212,10 @@ export function createDashboardAuthService(deps: DashboardServiceDeps): Dashboar
  * explicitly by the service rather than by the storage layer.
  */
 export function createDashboardUserLookup(
-  getUserById: (userId: string, fields?: string | string[] | null) => Promise<{
+  getUserById: (
+    userId: string,
+    fields?: string | string[] | null,
+  ) => Promise<{
     _id?: { toString(): string };
     tenantId?: string;
     role?: string;

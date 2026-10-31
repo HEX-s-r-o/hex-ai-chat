@@ -24,7 +24,10 @@ describe('loadDashboardKeyRing', () => {
 
   it('accepts PEM newlines escaped as \\n, as env files store them', () => {
     const escaped = a.privatePem.trim().replace(/\n/g, '\\n');
-    const ring = loadDashboardKeyRing({ keysJson: JSON.stringify({ k1: escaped }), activeKid: 'k1' });
+    const ring = loadDashboardKeyRing({
+      keysJson: JSON.stringify({ k1: escaped }),
+      activeKid: 'k1',
+    });
     expect(ring.keys.has('k1')).toBe(true);
   });
 
@@ -54,8 +57,16 @@ describe('loadDashboardKeyRing', () => {
     ['array', { keysJson: '[]', activeKid: 'x' }, 'KEYS_MALFORMED'],
     ['no active kid', { keysJson: ringJson }, 'ACTIVE_KID_MISSING'],
     ['unknown active kid', { keysJson: ringJson, activeKid: 'nope' }, 'ACTIVE_KID_UNKNOWN'],
-    ['bad kid', { keysJson: JSON.stringify({ 'bad kid!': a.privatePem }), activeKid: 'x' }, 'KID_INVALID'],
-    ['garbage key', { keysJson: JSON.stringify({ k1: 'garbage' }), activeKid: 'k1' }, 'KEY_INVALID'],
+    [
+      'bad kid',
+      { keysJson: JSON.stringify({ 'bad kid!': a.privatePem }), activeKid: 'x' },
+      'KID_INVALID',
+    ],
+    [
+      'garbage key',
+      { keysJson: JSON.stringify({ k1: 'garbage' }), activeKid: 'k1' },
+      'KEY_INVALID',
+    ],
     ['non-string key', { keysJson: JSON.stringify({ k1: 7 }), activeKid: 'k1' }, 'KEY_INVALID'],
     [
       'same key under two kids',

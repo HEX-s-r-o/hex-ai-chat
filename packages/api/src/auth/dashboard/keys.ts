@@ -1,6 +1,6 @@
 import { createPrivateKey, createPublicKey } from 'crypto';
-import type { JsonWebKey, KeyObject } from 'crypto';
 import { DASHBOARD_KID_PATTERN } from 'librechat-data-provider';
+import type { JsonWebKey, KeyObject } from 'crypto';
 
 /**
  * Key ring for the dashboard token signer. It holds Ed25519 private keys only, from secrets that

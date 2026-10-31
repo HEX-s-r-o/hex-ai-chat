@@ -31,10 +31,16 @@ describe('dashboard codes', () => {
     expect(isWellFormedDashboardSecret(generateDashboardHandle())).toBe(true);
   });
 
-  it.each([undefined, null, 5, '', 'short', 'a'.repeat(44), `${'a'.repeat(42)}!`, `${'a'.repeat(42)}\n`])(
-    'rejects malformed secret %p',
-    (value) => {
-      expect(isWellFormedDashboardSecret(value)).toBe(false);
-    },
-  );
+  it.each([
+    undefined,
+    null,
+    5,
+    '',
+    'short',
+    'a'.repeat(44),
+    `${'a'.repeat(42)}!`,
+    `${'a'.repeat(42)}\n`,
+  ])('rejects malformed secret %p', (value) => {
+    expect(isWellFormedDashboardSecret(value)).toBe(false);
+  });
 });

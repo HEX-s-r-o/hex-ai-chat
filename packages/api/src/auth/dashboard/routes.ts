@@ -1,4 +1,6 @@
 import { Router } from 'express';
+import { logger } from '@librechat/data-schemas';
+import { getTenantId } from '@librechat/data-schemas';
 import { rateLimit, ipKeyGenerator } from 'express-rate-limit';
 import { DashboardAuthErrorCode } from 'librechat-data-provider';
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
@@ -6,8 +8,6 @@ import type { Store } from 'express-rate-limit';
 import type { ServerRequest } from '~/types/http';
 import type { DashboardRuntime } from './config';
 import { getSafeErrorMetadata } from '~/utils/errors';
-import { logger } from '@librechat/data-schemas';
-import { getTenantId } from '@librechat/data-schemas';
 
 const STATUS: Record<DashboardAuthErrorCode, number> = {
   [DashboardAuthErrorCode.Disabled]: 404,
@@ -130,7 +130,11 @@ export function createDashboardAuthRouter(options: DashboardRouterOptions): Rout
       }
     };
 
-  const requireExchangeCredential: RequestHandler = (req: Request, res: Response, next: NextFunction) => {
+  const requireExchangeCredential: RequestHandler = (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
     if (!runtimeOf(res).verifyCredential(req.headers.authorization)) {
       logger.warn('[dashboardAuth] exchange credential rejected');
       return sendError(res, DashboardAuthErrorCode.ClientUnauthorized);

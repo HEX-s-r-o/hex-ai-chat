@@ -1,8 +1,13 @@
-import { DashboardAuthErrorCode } from 'librechat-data-provider';
 import { logger } from '@librechat/data-schemas';
+import { DashboardAuthErrorCode } from 'librechat-data-provider';
 import type { DashboardServiceConfig, DashboardUser } from './service';
+import {
+  createFakeClock,
+  createFakeStore,
+  decodeJwt,
+  generateTestEd25519,
+} from './dashboard.helper';
 import { createDashboardAuthService, resolveDashboardTenant } from './service';
-import { createFakeClock, createFakeStore, decodeJwt, generateTestEd25519 } from './dashboard.helper';
 import { hashDashboardCode, hashDashboardHandle } from './codes';
 import { loadDashboardKeyRing } from './keys';
 
@@ -26,7 +31,12 @@ const baseConfig: DashboardServiceConfig = {
   strictTenant: false,
 };
 
-function setup(overrides: { config?: Partial<DashboardServiceConfig>; users?: Record<string, DashboardUser> } = {}) {
+function setup(
+  overrides: {
+    config?: Partial<DashboardServiceConfig>;
+    users?: Record<string, DashboardUser>;
+  } = {},
+) {
   const clock = createFakeClock();
   const store = createFakeStore();
   const users: Record<string, DashboardUser> = overrides.users ?? {
@@ -71,7 +81,9 @@ describe('dashboard auth service', () => {
       const { service } = setup();
       const first = ok(await service.issueCode({ id: 'u1', tenantId: 'tenant-1' }));
       const second = ok(await service.issueCode({ id: 'u1', tenantId: 'tenant-1' }));
-      expect(errorCode(await service.redeemCode(first.code))).toBe(DashboardAuthErrorCode.CodeInvalid);
+      expect(errorCode(await service.redeemCode(first.code))).toBe(
+        DashboardAuthErrorCode.CodeInvalid,
+      );
       expect((await service.redeemCode(second.code)).ok).toBe(true);
     });
 
@@ -83,7 +95,9 @@ describe('dashboard auth service', () => {
 
     it('refuses without a real tenant under strict isolation and ignores the system tenant', async () => {
       const { service } = setup({ config: { strictTenant: true } });
-      expect(errorCode(await service.issueCode({ id: 'u1' }))).toBe(DashboardAuthErrorCode.TenantRequired);
+      expect(errorCode(await service.issueCode({ id: 'u1' }))).toBe(
+        DashboardAuthErrorCode.TenantRequired,
+      );
       expect(errorCode(await service.issueCode({ id: 'u1' }, '__SYSTEM__'))).toBe(
         DashboardAuthErrorCode.TenantRequired,
       );
@@ -180,7 +194,9 @@ describe('dashboard auth service', () => {
       const { service, users } = setup();
       const { code } = ok(await service.issueCode({ id: 'u1', tenantId: 'tenant-1' }));
       users.u1 = { id: 'u1', tenantId: 'tenant-2' };
-      expect(errorCode(await service.redeemCode(code))).toBe(DashboardAuthErrorCode.PrincipalForbidden);
+      expect(errorCode(await service.redeemCode(code))).toBe(
+        DashboardAuthErrorCode.PrincipalForbidden,
+      );
     });
 
     it('refuses a code whose tenant is not the tenant the dashboard serves', async () => {
@@ -194,7 +210,9 @@ describe('dashboard auth service', () => {
         findUserById: issuer.findUserById,
         now: issuer.clock.now,
       });
-      expect(errorCode(await strict.redeemCode(code))).toBe(DashboardAuthErrorCode.PrincipalForbidden);
+      expect(errorCode(await strict.redeemCode(code))).toBe(
+        DashboardAuthErrorCode.PrincipalForbidden,
+      );
       expect(issuer.findUserById).not.toHaveBeenCalled();
     });
 
@@ -218,7 +236,9 @@ describe('dashboard auth service', () => {
       const redeemed = ok(await service.redeemCode(code));
       await service.redeemCode(code);
       const logged = JSON.stringify(
-        [logger.warn, logger.error, logger.info, logger.debug].map((fn) => (fn as jest.Mock).mock.calls),
+        [logger.warn, logger.error, logger.info, logger.debug].map(
+          (fn) => (fn as jest.Mock).mock.calls,
+        ),
       );
       for (const secret of [code, redeemed.token, redeemed.sessionHandle, 'u1', 'tenant-1']) {
         expect(logged).not.toContain(secret);
@@ -238,7 +258,9 @@ describe('dashboard auth service', () => {
     it('rejects malformed handles', async () => {
       const { service } = setup();
       expect(errorCode(await service.revokeHandle('nope'))).toBe(DashboardAuthErrorCode.BadRequest);
-      expect(errorCode(await service.revokeHandle(undefined))).toBe(DashboardAuthErrorCode.BadRequest);
+      expect(errorCode(await service.revokeHandle(undefined))).toBe(
+        DashboardAuthErrorCode.BadRequest,
+      );
     });
   });
 });
