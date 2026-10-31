@@ -5,3 +5,4 @@ export * from './keys';
 export * from './routes';
 export * from './service';
 export * from './token';
+export * from './entry';

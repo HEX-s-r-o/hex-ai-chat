@@ -15,6 +15,7 @@ const {
   resolveCodeEnvironmentDecisionVersion,
   resolveCodeEnvironmentMoveCapabilities,
   resolveCodeEnvironmentTransitionVersion,
+  resolveDashboardEntry,
 } = require('@librechat/api');
 const { EModelEndpoint, defaultSocialLogins } = require('librechat-data-provider');
 const { logger, getTenantId, SystemCapabilities } = require('@librechat/data-schemas');
@@ -325,6 +326,15 @@ router.get('/', async function (req, res) {
       fileUploadSseEnabled: isEnabled(process.env.FILE_UPLOAD_SSE_ENABLED),
       endpointsDropParamsMap: endpointsDropParamsMap,
     };
+
+    const dashboardEntry = resolveDashboardEntry(
+      appConfig?.config?.dashboardAuth,
+      req.user,
+      req.authStrategy,
+    );
+    if (dashboardEntry) {
+      payload.dashboard = dashboardEntry;
+    }
 
     const webSearch = buildWebSearchConfig(appConfig);
     if (webSearch) {

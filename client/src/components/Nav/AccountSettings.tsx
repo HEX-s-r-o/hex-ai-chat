@@ -7,6 +7,7 @@ import {
   ChevronRight,
   CircleHelp,
   Keyboard,
+  LayoutDashboard,
   LifeBuoy,
   LogOut,
   Scale,
@@ -14,9 +15,9 @@ import {
 } from 'lucide-react';
 import { ArchivedChatsModal } from '~/components/Nav/SettingsTabs/General/ArchivedChatsModal';
 import { useGetStartupConfig, useGetUserBalance } from '~/data-provider';
+import { useLocalize, useOpenDashboard } from '~/hooks';
 import { useAuthContext } from '~/hooks/AuthContext';
 import { openInNewTab } from '~/utils';
-import { useLocalize } from '~/hooks';
 import Settings from './Settings';
 import store from '~/store';
 
@@ -91,6 +92,24 @@ function HelpSubmenu({
   );
 }
 
+/** Visible only when the server advertises a dashboard for this user (see `dashboardAuth`). */
+export function OpenDashboardMenuItem({ callbackUrl }: { callbackUrl: string }) {
+  const localize = useLocalize();
+  const { openDashboard, isOpening } = useOpenDashboard(callbackUrl);
+
+  return (
+    <Menu.MenuItem
+      onClick={openDashboard}
+      disabled={isOpening}
+      className="select-item text-sm"
+      data-testid="nav-open-dashboard"
+    >
+      <LayoutDashboard className="icon-md" aria-hidden="true" />
+      {localize(isOpening ? 'com_ui_dashboard_opening' : 'com_ui_dashboard_open')}
+    </Menu.MenuItem>
+  );
+}
+
 function AccountSettings({ collapsed = false }: { collapsed?: boolean }) {
   const localize = useLocalize();
   const { user, isAuthenticated, logout } = useAuthContext();
@@ -158,6 +177,9 @@ function AccountSettings({ collapsed = false }: { collapsed?: boolean }) {
           privacyPolicyURL={startupConfig?.interface?.privacyPolicy?.externalUrl}
           onShowShortcuts={() => setShowShortcutsDialog(true)}
         />
+        {startupConfig?.dashboard?.callbackUrl != null && (
+          <OpenDashboardMenuItem callbackUrl={startupConfig.dashboard.callbackUrl} />
+        )}
         <Menu.MenuItem onClick={() => setShowArchived(true)} className="select-item text-sm">
           <Archive className="icon-md" aria-hidden="true" />
           {localize('com_nav_archived_chats')}

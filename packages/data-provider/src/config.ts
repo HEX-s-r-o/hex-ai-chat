@@ -2513,6 +2513,8 @@ export type EndpointsDropParamsMap = Record<string, string[] | Record<string, st
 
 export type TStartupConfig = {
   appTitle: string;
+  /** Present only for a signed-in user the dashboard issuer would serve; see `dashboardAuth`. */
+  dashboard?: { callbackUrl: string };
   socialLogins?: string[];
   langfuseFanoutEnabled?: boolean;
   langfuseConnectionAccess?: boolean;
