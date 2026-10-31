@@ -13,6 +13,9 @@ jest.mock('@librechat/api', () => ({
       ...args,
     ),
   createSetBalanceConfig: jest.fn(() => (req, res, next) => next()),
+  createDashboardAuthRouter: jest.fn(() => (req, res, next) => next()),
+  createDashboardRuntimeResolver: jest.fn(),
+  createDashboardUserLookup: jest.fn(),
   forceRefreshCloudFrontAuthCookies: jest.fn(),
 }));
 
