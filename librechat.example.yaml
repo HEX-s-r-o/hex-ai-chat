@@ -432,6 +432,7 @@ registration:
 #   enabled: true
 #   issuer: 'https://chat.example.com'   # exact `iss`; required, never defaulted
 #   audience: 'hex-dashboard'            # exact `aud`
+#   dashboardUrl: 'https://dashboard.example.com'  # base URL that receives the code; https only (http on localhost). Enables the "Open dashboard" menu item
 #   activeKid: 'dash-2026-11'            # which key in DASHBOARD_JWT_KEYS signs (rotation switch)
 #   tokenTtlSeconds: 300                 # max 300
 #   codeTtlSeconds: 60                   # max 60
