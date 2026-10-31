@@ -37,7 +37,7 @@ const fakeUserAuth: RequestHandler = async (req, res, next) => {
     res.sendStatus(401);
     return;
   }
-  Object.assign(req, { user: { ...user, id: String(user._id) } });
+  Object.assign(req, { user: { ...user, id: String((user as { _id: unknown })._id) } });
   next();
 };
 
@@ -67,6 +67,13 @@ async function createUser(overrides: Record<string, unknown> = {}): Promise<stri
   });
   return String(doc._id);
 }
+
+interface StoredRow {
+  consumedAt?: Date;
+  revokedAt?: Date;
+}
+const findRow = async (): Promise<StoredRow | null> =>
+  (await mongoose.models.DashboardCode.findOne({}).lean()) as StoredRow | null;
 
 const bff = (req: request.Test) => req.set('Authorization', `Bearer ${SECRET}`);
 
@@ -170,7 +177,7 @@ describe('POST /api/auth/dashboard/token', () => {
       code: DashboardAuthErrorCode.CodeInvalid,
       message: 'Code is invalid or expired.',
     });
-    const row = await mongoose.models.DashboardCode.findOne({}).lean();
+    const row = await findRow();
     expect(row?.revokedAt).toBeInstanceOf(Date);
     // The handle from the first redemption is already revoked, so revoking again reports nothing new.
     await bff(request(app).post('/api/auth/dashboard/revoke'))
@@ -226,7 +233,7 @@ describe('POST /api/auth/dashboard/token', () => {
       .expect(401);
     expect(res.body.code).toBe(DashboardAuthErrorCode.ClientUnauthorized);
     // The rejected attempt did not spend the code.
-    expect((await mongoose.models.DashboardCode.findOne({}).lean())?.consumedAt).toBeUndefined();
+    expect((await findRow())?.consumedAt).toBeUndefined();
   });
 
   it('accepts the previous credential during rotation and the new one after', async () => {
@@ -372,7 +379,7 @@ describe('POST /api/auth/dashboard/revoke', () => {
     await bff(request(app).post('/api/auth/dashboard/revoke'))
       .send({ session_handle: body.session_handle })
       .expect(200);
-    const row = await mongoose.models.DashboardCode.findOne({}).lean();
+    const row = await findRow();
     expect(row?.revokedAt).toBeInstanceOf(Date);
     await bff(request(app).post('/api/auth/dashboard/revoke'))
       .send({ session_handle: 'bad' })

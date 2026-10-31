@@ -17,7 +17,10 @@ const TENANT_ISOLATION_APPLIED = Symbol.for('librechat:tenantIsolation');
  * filter from the JWT-resolved caller and uses `{ tenantId: { $exists: false } }`
  * for platform-level entries. RefreshTokenBridge resolves tenant context from
  * the signed OpenID marker cookie during unauthenticated refresh recovery, and
- * its methods apply explicit tenant filters. Adding an entry here must be a
+ * its methods apply explicit tenant filters. DashboardCode is redeemed by the dashboard backend,
+ * whose server-to-server request carries no tenant context (ambient scoping would throw under
+ * TENANT_ISOLATION_STRICT); lookups are by the hash of a 256-bit secret and the tenant bound to the
+ * code is compared explicitly by the redemption service. Adding an entry here must be a
  * deliberate, reviewed decision — that is the whole point of this guard.
  */
 const MANUAL_TENANT_SCOPING = new Set<string>([
@@ -25,6 +28,7 @@ const MANUAL_TENANT_SCOPING = new Set<string>([
   'SkillSyncStatus',
   'AuditLog',
   'RefreshTokenBridge',
+  'DashboardCode',
 ]);
 
 function isPluginApplied(schema: mongoose.Schema): boolean {
