@@ -576,6 +576,11 @@ export const disableTwoFactor = () => `${BASE_URL}/api/auth/2fa/disable`;
 export const regenerateBackupCodes = () => `${BASE_URL}/api/auth/2fa/backup/regenerate`;
 export const verifyTwoFactorTemp = () => `${BASE_URL}/api/auth/2fa/verify-temp`;
 
+// Dashboard token issuer (ADR-0006). `token` and `revoke` are server-to-server (dashboard backend).
+export const dashboardCode = () => `${BASE_URL}/api/auth/dashboard/code`;
+export const dashboardToken = () => `${BASE_URL}/api/auth/dashboard/token`;
+export const dashboardRevoke = () => `${BASE_URL}/api/auth/dashboard/revoke`;
+
 /* Memories */
 export const memories = () => `${BASE_URL}/api/memories`;
 export const memory = (key: string, agentId?: string) =>

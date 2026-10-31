@@ -11,6 +11,7 @@ import {
   createRefreshTokenBridgeMethods,
   type RefreshTokenBridgeMethods,
 } from './refreshTokenBridge';
+import { createDashboardCodeMethods, type DashboardCodeMethods } from './dashboardCode';
 import { createSessionMethods, DEFAULT_REFRESH_TOKEN_EXPIRY, type SessionMethods } from './session';
 import { createUserMethods, DEFAULT_SESSION_EXPIRY, type UserMethods } from './user';
 import { createFileMethods, type FileMethods, type FileOwnerScope } from './file';
@@ -229,6 +230,7 @@ export type AllMethods = UserMethods &
   SessionMethods &
   TokenMethods &
   RefreshTokenBridgeMethods &
+  DashboardCodeMethods &
   OpenIDRefreshFlightMethods &
   RoleMethods &
   KeyMethods &
@@ -459,6 +461,7 @@ export function createMethods(
     ...createSessionMethods(mongoose),
     ...createTokenMethods(mongoose),
     ...createRefreshTokenBridgeMethods(mongoose),
+    ...createDashboardCodeMethods(mongoose),
     ...createOpenIDRefreshFlightMethods(mongoose),
     ...roleMethods,
     ...createKeyMethods(mongoose),
@@ -515,6 +518,7 @@ export type {
   SessionMethods,
   TokenMethods,
   RefreshTokenBridgeMethods,
+  DashboardCodeMethods,
   OpenIDRefreshFlightMethods,
   RoleMethods,
   KeyMethods,

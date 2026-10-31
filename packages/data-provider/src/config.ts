@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { ZodError } from 'zod';
 import type { TEndpointsConfig, TModelsConfig, TConfig } from './types';
+import { dashboardAuthConfigSchema } from './dashboardAuth';
 import {
   filtersConfigSchema,
   MAX_PII_CUSTOM_REGEX_CHARACTERS,
@@ -3229,6 +3230,7 @@ export const configSchema = z.object({
     })
     .optional(),
   rateLimits: rateLimitSchema.optional(),
+  dashboardAuth: dashboardAuthConfigSchema.optional(),
   fileConfig: fileConfigSchema.optional(),
   modelSpecs: specsConfigSchema.optional(),
   filters: filtersConfigSchema.optional(),
