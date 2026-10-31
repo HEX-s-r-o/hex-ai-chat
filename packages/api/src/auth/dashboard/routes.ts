@@ -154,6 +154,11 @@ export function createDashboardAuthRouter(options: DashboardRouterOptions): Rout
       if (!userId) {
         return sendError(res, DashboardAuthErrorCode.ClientUnauthorized);
       }
+      /** ADR-0006: the session binding for OpenID-reuse sessions is not designed yet, so they get no code. */
+      if ((req as ServerRequest).authStrategy === 'openidJwt') {
+        logger.warn('[dashboardAuth] code refused', { reason: 'openid_reuse_session' });
+        return sendError(res, DashboardAuthErrorCode.PrincipalForbidden);
+      }
       const result = await runtime.service.issueCode(
         { id: userId, tenantId: user?.tenantId != null ? String(user.tenantId) : undefined },
         getTenantId(),

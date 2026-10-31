@@ -38,6 +38,7 @@ const fakeUserAuth: RequestHandler = async (req, res, next) => {
     return;
   }
   Object.assign(req, { user: { ...user, id: String((user as { _id: unknown })._id) } });
+  Object.assign(req, { authStrategy: req.get('x-test-strategy') ?? 'jwt' });
   next();
 };
 
@@ -345,6 +346,18 @@ describe('POST /api/auth/dashboard/code', () => {
       .expect(401);
     expect(anonymous.body).not.toHaveProperty('code');
     expect(unknown.body).not.toHaveProperty('code');
+    expect(await mongoose.models.DashboardCode.countDocuments()).toBe(0);
+  });
+
+  it('refuses OpenID-reuse sessions, whose binding ADR-0006 leaves unspecified', async () => {
+    const app = buildApp();
+    const userId = await createUser();
+    const res = await request(app)
+      .post('/api/auth/dashboard/code')
+      .set('x-test-user', userId)
+      .set('x-test-strategy', 'openidJwt')
+      .expect(403);
+    expect(res.body.code).toBe(DashboardAuthErrorCode.PrincipalForbidden);
     expect(await mongoose.models.DashboardCode.countDocuments()).toBe(0);
   });
 
