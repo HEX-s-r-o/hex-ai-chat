@@ -82,6 +82,35 @@ export interface DashboardTokenClaims {
   principal_source: typeof DASHBOARD_PRINCIPAL_SOURCE;
 }
 
+/** Path on the dashboard that exchanges the one-time code (dashboard `CALLBACK_PATH`). */
+export const DASHBOARD_CALLBACK_PATH = '/auth/callback';
+
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
+
+/** A base URL is safe to receive a code only if it is https (or local http) and carries nothing extra. */
+export function isValidDashboardBaseUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    const secure =
+      url.protocol === 'https:' || (url.protocol === 'http:' && LOCAL_HOSTS.has(url.hostname));
+    return secure && !url.username && !url.password && !url.search && !url.hash;
+  } catch {
+    return false;
+  }
+}
+
+/** `<base>/auth/callback`, normalising a trailing slash on the base. */
+export function buildDashboardCallbackUrl(baseUrl: string): string {
+  return `${baseUrl.replace(/\/+$/, '')}${DASHBOARD_CALLBACK_PATH}`;
+}
+
+/** Callback URL carrying the one-time code. Built at navigation time and never stored. */
+export function withDashboardCode(callbackUrl: string, code: string): string {
+  const url = new URL(callbackUrl);
+  url.searchParams.set('code', code);
+  return url.toString();
+}
+
 /**
  * Non-secret issuer settings (`dashboardAuth` in `librechat.yaml`). Private keys and the BFF
  * credential are secrets and come only from the environment; see docs/dashboard-auth.md.
@@ -111,6 +140,14 @@ export const dashboardAuthConfigSchema = z.object({
     .max(DASHBOARD_MAX_CODE_TTL_SECONDS)
     .optional()
     .default(DASHBOARD_MAX_CODE_TTL_SECONDS),
+  /**
+   * Public base URL of the dashboard that receives the sign-in code (no hard-coded default).
+   * https only, except http on localhost for local development. No credentials, query or fragment.
+   */
+  dashboardUrl: z
+    .string()
+    .refine(isValidDashboardBaseUrl, { message: 'dashboardUrl must be a clean https URL' })
+    .optional(),
   /** Tenant a dashboard deployment serves. When set, codes of any other tenant are refused. */
   expectedTenantId: z.string().min(1).optional(),
   /** Tenant value for deployments without tenant isolation. Ignored when TENANT_ISOLATION_STRICT. */

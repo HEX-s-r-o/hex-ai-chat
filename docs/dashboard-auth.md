@@ -131,8 +131,6 @@ BFF credential rotation: set the new value as `DASHBOARD_EXCHANGE_SECRET` and th
 - The code is not bound to a specific chat refresh session, only to user and tenant; chat logout stops new
   codes but does not revoke an issued token earlier than its 5-minute expiry. The handle is revocable via
   `/revoke`; a back-channel is a later ADR phase.
-- No chat UI entry point calls `/code` yet (`requestDashboardCode` exists in `librechat-data-provider`);
-  the dashboard link/button is out of scope for this packet.
 - Rate-limit stores use Redis when chat is configured for it, otherwise process memory.
 
 ## Local runbook (no production secrets)
@@ -181,3 +179,17 @@ curl -s -X POST http://localhost:3080/api/auth/dashboard/revoke \
 ```
 
 Automated equivalent: `cd packages/api && npx jest --testPathPatterns="auth/dashboard"`.
+
+## Chat UI entry point
+
+With `dashboardAuth.enabled: true` and `dashboardAuth.dashboardUrl` set (https, or http on localhost; no
+credentials, query or fragment; never defaulted), `GET /api/config` returns `dashboard.callbackUrl`
+(`<dashboardUrl>/auth/callback`) to a signed-in user the issuer would serve. It is omitted when the
+issuer is disabled or has no URL, for OpenID-reuse sessions, and when `expectedTenantId` does not match
+the user. The account menu then shows **Open dashboard**.
+
+Choosing it calls `requestDashboardCode()` and navigates to `<callbackUrl>?code=<code>`. The code exists
+only in a local variable: not in React state, a query cache, storage, logs or analytics. A second click
+while a request is pending is ignored. Failures stay on the page with a localized message by status:
+401 sign in again, 403 no access, 404/503 unavailable, 429 wait and retry, no response network error,
+anything else a generic retry message.

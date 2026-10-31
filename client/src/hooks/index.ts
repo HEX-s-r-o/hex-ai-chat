@@ -30,6 +30,7 @@ export { default as useLocalize } from './useLocalize';
 export { default as useGreeting } from './useGreeting';
 export { default as useFocusTrap } from './useFocusTrap';
 export { default as useFavorites } from './useFavorites';
+export { default as useOpenDashboard } from './useOpenDashboard';
 export { default as useToolFavorites } from './useToolFavorites';
 export { default as useChatBadges } from './useChatBadges';
 export { default as useAdaptiveIcon } from './useAdaptiveIcon';
