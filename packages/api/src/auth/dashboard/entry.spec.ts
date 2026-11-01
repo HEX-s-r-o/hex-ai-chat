@@ -103,3 +103,35 @@ describe('resolveDashboardEntry does not depend on the ambient NODE_ENV', () => 
     },
   );
 });
+
+describe('resolveDashboardEntry and the hostname bypass forms', () => {
+  const prod = { NODE_ENV: 'production' } as NodeJS.ProcessEnv;
+  const user = { tenantId: 't1' };
+
+  it.each([
+    'https://localhost.',
+    'https://foo.localhost.',
+    'https://dash.corp.test.',
+    'https://dash.corp.local.',
+    'https://dash.corp.internal.',
+    'https://dash.corp.lan',
+    'https://dash.corp.home.arpa',
+    'https://intranet',
+    'https://dashboard',
+  ])('advertises nothing for %s outside local development', (dashboardUrl) => {
+    expect(
+      resolveDashboardEntry({ enabled: true, dashboardUrl }, user, undefined, prod),
+    ).toBeUndefined();
+  });
+
+  it('still advertises a public name, with or without one trailing dot', () => {
+    for (const host of [
+      'https://dashboard.acme-internal.dev',
+      'https://dashboard.acme-internal.dev.',
+    ]) {
+      expect(
+        resolveDashboardEntry({ enabled: true, dashboardUrl: host }, user, undefined, prod),
+      ).toBeDefined();
+    }
+  });
+});

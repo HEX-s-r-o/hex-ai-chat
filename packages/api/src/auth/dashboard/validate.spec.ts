@@ -166,3 +166,157 @@ describe('validateDashboardAuthSettings', () => {
     expect(JSON.stringify(result)).not.toMatch(/SECRETPW|SECRETVALUE|localhost/);
   });
 });
+
+/**
+ * Regression table for the hostname bypass found in review: `https://localhost.` and the other
+ * trailing-dot or non-public forms were accepted outside local development. These are the 32 forms that were
+ * probed against the validator; every one is checked as `dashboardUrl` and as `issuer`.
+ */
+describe('hostname policy outside local development (regression table)', () => {
+  const REJECT = 'reject';
+  const ACCEPT = 'accept';
+  type Expectation = typeof REJECT | typeof ACCEPT;
+  const forms: Array<[url: string, expected: Expectation, why: string]> = [
+    ['https://localhost', REJECT, 'loopback name'],
+    ['https://LOCALHOST', REJECT, 'loopback name, upper case'],
+    ['https://localhost.', REJECT, 'loopback name, trailing dot'],
+    ['https://localhost:8443', REJECT, 'loopback name with a port'],
+    ['https://foo.localhost', REJECT, '.localhost'],
+    ['https://foo.localhost.', REJECT, '.localhost, trailing dot'],
+    ['https://127.0.0.1', REJECT, 'loopback IPv4'],
+    ['https://127.1', REJECT, 'IPv4 shorthand'],
+    ['https://0x7f000001', REJECT, 'IPv4 hex'],
+    ['https://2130706433', REJECT, 'IPv4 integer'],
+    ['https://[::1]', REJECT, 'loopback IPv6'],
+    ['https://[::ffff:127.0.0.1]', REJECT, 'IPv4-mapped IPv6'],
+    ['https://0.0.0.0', REJECT, 'unspecified address'],
+    ['https://10.0.0.5', REJECT, 'private IPv4'],
+    ['https://192.168.1.10', REJECT, 'private IPv4'],
+    ['https://169.254.169.254', REJECT, 'link-local IPv4'],
+    ['https://[fd00::1]', REJECT, 'unique-local IPv6'],
+    ['https://dash.corp.test', REJECT, '.test'],
+    ['https://dash.corp.test.', REJECT, '.test, trailing dot'],
+    ['https://dash.corp.local.', REJECT, '.local, trailing dot'],
+    ['https://dash.corp.internal', REJECT, '.internal'],
+    ['https://dash.corp.internal.', REJECT, '.internal, trailing dot'],
+    ['https://dash.corp.lan', REJECT, '.lan'],
+    ['https://dash.corp.home.arpa', REJECT, 'home.arpa'],
+    ['https://intranet', REJECT, 'single label'],
+    ['https://dashboard', REJECT, 'single label'],
+    ['https://dash.example.com.', REJECT, 'template host, trailing dot'],
+    ['https://EXAMPLE.COM', REJECT, 'template host, upper case'],
+    ['https://dash.example.org/path', REJECT, 'template host with a path'],
+    ['https://example.net', REJECT, 'template host'],
+    ['https://dashboard.acme-internal.dev', ACCEPT, 'ordinary public name'],
+    ['https://dashboard.acme-internal.dev.', ACCEPT, 'ordinary public name, one trailing dot'],
+  ];
+
+  it('covers exactly the 32 forms that were probed', () => {
+    expect(forms).toHaveLength(32);
+    expect(new Set(forms.map(([url]) => url)).size).toBe(32);
+    expect(forms.filter(([, expected]) => expected === ACCEPT)).toHaveLength(2);
+  });
+
+  describe.each([
+    ['dashboardUrl', (url: string) => ({ dashboardUrl: url }), /^DASHBOARD_URL_/],
+    ['issuer', (url: string) => ({ issuer: url }), /^ISSUER_/],
+  ] as const)('%s', (_field, build, codePattern) => {
+    it.each(forms)('%s is %s (%s)', (url, expected) => {
+      const found = problems(build(url));
+      if (expected === ACCEPT) {
+        expect(found).toEqual([]);
+      } else {
+        expect(found.length).toBeGreaterThan(0);
+        for (const code of found) expect(code).toMatch(codePattern);
+      }
+    });
+  });
+
+  it.each([
+    ['https://dashboard.acme-internal.dev', 'ordinary two-label domain'],
+    ['https://dashboard.acme-internal.dev.', 'ordinary domain with one trailing dot'],
+    ['https://app.dash.acme-internal.dev', 'several labels'],
+    ['https://app.dash.acme-internal.dev./', 'several labels, trailing dot, explicit root path'],
+    ['https://dash.acme.io:8443', 'a port'],
+    ['https://xn--dashbord-q3a.acme-internal.dev', 'punycode label'],
+    ['https://lan.acme-internal.dev', 'a label named lan that is not the last one'],
+    ['https://local.acme-internal.dev', 'a label named local that is not the last one'],
+    ['https://test.acme-internal.dev', 'a label named test that is not the last one'],
+    ['https://internal.acme-internal.dev', 'a label named internal that is not the last one'],
+    ['https://home.arpa.acme-internal.dev', 'home.arpa as a non-final part'],
+  ])('keeps accepting %s (%s)', (url) => {
+    expect(problems({ dashboardUrl: url, issuer: url })).toEqual([]);
+  });
+
+  it.each([
+    ['https://localhost..', 'two trailing dots'],
+    ['https://dashboard.acme-internal.dev..', 'two trailing dots on a public name'],
+    ['https://dash..acme-internal.dev', 'an empty label'],
+    ['https://127.0.0.1.', 'IPv4 with a trailing dot'],
+    ['https://dash.corp.lan.', '.lan, trailing dot'],
+    ['https://dash.corp.home.arpa.', 'home.arpa, trailing dot'],
+    ['https://home.arpa', 'home.arpa itself'],
+    ['https://intranet.', 'single label, trailing dot'],
+    ['https://LOCALHOST.', 'loopback name, upper case and trailing dot'],
+    ['http://dashboard.acme-internal.dev.', 'plain http on a public name'],
+    ['https://u:p@dashboard.acme-internal.dev.', 'credentials with a trailing dot'],
+    ['https://dash.example.com./', 'template host, trailing dot, root path'],
+  ])('also rejects %s (%s)', (url) => {
+    expect(problems({ dashboardUrl: url }).length).toBeGreaterThan(0);
+    expect(problems({ issuer: url }).length).toBeGreaterThan(0);
+  });
+
+  it('reports a malformed double dot as invalid, and keeps the specific codes for the common cases', () => {
+    expect(problems({ dashboardUrl: 'https://localhost..' })).toContain('DASHBOARD_URL_INVALID');
+    expect(problems({ dashboardUrl: 'https://localhost.' })).toContain('DASHBOARD_URL_LOCAL_HOST');
+    expect(problems({ dashboardUrl: 'https://intranet' })).toContain('DASHBOARD_URL_LOCAL_HOST');
+    expect(problems({ dashboardUrl: 'https://dash.corp.lan' })).toContain(
+      'DASHBOARD_URL_LOCAL_HOST',
+    );
+    expect(problems({ issuer: 'https://dash.corp.home.arpa' })).toContain('ISSUER_LOCAL_HOST');
+    expect(problems({ dashboardUrl: 'http://dashboard.acme-internal.dev.' })).toContain(
+      'DASHBOARD_URL_NOT_HTTPS',
+    );
+  });
+
+  it.each([undefined, '', 'staging', 'CI', 'production'])(
+    'applies the same policy when NODE_ENV is %p',
+    (nodeEnv) => {
+      const env = { NODE_ENV: nodeEnv } as NodeJS.ProcessEnv;
+      expect(problems({ dashboardUrl: 'https://localhost.' }, env)).toContain(
+        'DASHBOARD_URL_LOCAL_HOST',
+      );
+      expect(problems({ dashboardUrl: 'https://intranet' }, env)).toContain(
+        'DASHBOARD_URL_LOCAL_HOST',
+      );
+      expect(problems({ dashboardUrl: 'https://dashboard.acme-internal.dev.' }, env)).toEqual([]);
+    },
+  );
+
+  describe('local development stays permissive where it was', () => {
+    it.each(['development', 'test'])('NODE_ENV=%s', (nodeEnv) => {
+      const env = { NODE_ENV: nodeEnv } as NodeJS.ProcessEnv;
+      const local = (url: string, issuer = 'http://127.0.0.1:3080') =>
+        problems({ dashboardUrl: url, issuer }, env);
+      expect(local('http://localhost:5273')).toEqual([]);
+      expect(local('http://localhost.:5273')).toEqual([]); // trailing dot is the same loopback name
+      expect(local('http://127.0.0.1:5273')).toEqual([]);
+      expect(local('https://intranet')).toEqual([]); // single label is fine for a developer machine
+      expect(local('https://dash.corp.lan')).toEqual([]);
+      expect(local('https://dashboard.acme-internal.dev.')).toEqual([]);
+      // Still refused locally: plain http to a non-loopback name, credentials, placeholders, malformed hosts.
+      expect(local('http://dash.corp.lan')).toContain('DASHBOARD_URL_NOT_HTTPS');
+      expect(local('https://u:p@localhost')).toContain('DASHBOARD_URL_INVALID');
+      expect(local('https://dashboard.example.com.')).toContain('DASHBOARD_URL_PLACEHOLDER');
+      expect(local('https://localhost..')).toContain('DASHBOARD_URL_INVALID');
+    });
+  });
+
+  it('never echoes a hostname in the reported codes', () => {
+    const result = problems({
+      dashboardUrl: 'https://secret-host.corp.lan.',
+      issuer: 'https://user:pw@intranet.',
+    });
+    expect(JSON.stringify(result)).not.toMatch(/secret-host|corp|intranet|user|pw/);
+  });
+});

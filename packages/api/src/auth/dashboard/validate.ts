@@ -31,8 +31,21 @@ export type DashboardSettingsProblem =
 const PLACEHOLDER =
   /[<>]|change[-_ ]?me|replace[-_ ]?(me|with)|placeholder|your[-_](domain|host|key)|\.invalid\b|\bexample\.(com|org|net)\b/i;
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', '::1']);
-/** Reserved or non-public top-level names that cannot be a real production host. */
-const NON_PUBLIC_TLD = /\.(test|localhost|local|internal|invalid)$/i;
+/**
+ * Reserved or non-public names that cannot be a real production host. Matched against the normalised host
+ * (see `normalizedHost`), so `corp.lan` and `corp.lan.` are treated alike.
+ */
+const NON_PUBLIC_NAME = /(^|\.)(test|localhost|local|internal|invalid|lan)$|(^|\.)home\.arpa$/i;
+
+/**
+ * The host as it must be judged. The URL parser already lower-cases it. One trailing dot (`localhost.`) is
+ * the absolute form of the same name and is removed, so it cannot be used to slip past a check; a second
+ * trailing dot or an empty label is malformed and yields `undefined`.
+ */
+function normalizedHost(url: URL): string | undefined {
+  const host = url.hostname.endsWith('.') ? url.hostname.slice(0, -1) : url.hostname;
+  return host === '' || host.endsWith('.') || host.includes('..') ? undefined : host;
+}
 
 export const isLocalEnvironment = (env: NodeJS.ProcessEnv): boolean =>
   env.NODE_ENV === 'development' || env.NODE_ENV === 'test';
@@ -65,7 +78,10 @@ function checkUrl(
   if (url.username || url.password || url.search || url.hash) {
     problems.push(codes.invalid);
   }
-  const host = url.hostname;
+  const host = normalizedHost(url);
+  if (host === undefined) {
+    return [...problems, codes.invalid];
+  }
   const isLoopback = LOCAL_HOSTS.has(host);
   if (local) {
     // Local development: https anywhere, or plain http only on loopback.
@@ -77,7 +93,14 @@ function checkUrl(
   if (url.protocol !== 'https:') {
     problems.push(codes.notHttps);
   }
-  if (isLoopback || isIP(host.replace(/^\[|\]$/g, '')) !== 0 || NON_PUBLIC_TLD.test(host)) {
+  // A public name has at least two labels; a single label (`intranet`) resolves only inside a private network.
+  const singleLabel = !host.includes('.') && !host.startsWith('[');
+  if (
+    isLoopback ||
+    singleLabel ||
+    isIP(host.replace(/^\[|\]$/g, '')) !== 0 ||
+    NON_PUBLIC_NAME.test(host)
+  ) {
     problems.push(codes.localHost);
   }
   return problems;

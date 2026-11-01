@@ -149,6 +149,32 @@ describe('fail-closed settings validation', () => {
     },
   );
 
+  it.each([
+    ['dashboardUrl', { dashboardUrl: 'https://localhost.' }, 'DASHBOARD_URL_LOCAL_HOST'],
+    ['dashboardUrl', { dashboardUrl: 'https://dash.corp.internal.' }, 'DASHBOARD_URL_LOCAL_HOST'],
+    ['dashboardUrl', { dashboardUrl: 'https://dash.corp.lan' }, 'DASHBOARD_URL_LOCAL_HOST'],
+    ['dashboardUrl', { dashboardUrl: 'https://dashboard' }, 'DASHBOARD_URL_LOCAL_HOST'],
+    ['issuer', { issuer: 'https://localhost.' }, 'ISSUER_LOCAL_HOST'],
+    ['issuer', { issuer: 'https://chat.corp.home.arpa' }, 'ISSUER_LOCAL_HOST'],
+    ['issuer', { issuer: 'https://chat' }, 'ISSUER_LOCAL_HOST'],
+  ])('issues nothing for a trailing-dot or non-public %s %j', async (_field, override, code) => {
+    expect((await resolver({ ...prodSettings, ...override }, prodEnv)()).status).toBe(
+      'unavailable',
+    );
+    expect(logger.error).toHaveBeenCalledWith('[dashboardAuth] disabled by invalid configuration', {
+      reason: expect.stringContaining(code),
+    });
+  });
+
+  it('still issues for a public name with one trailing dot', async () => {
+    const settings = {
+      ...prodSettings,
+      issuer: 'https://chat.acme-internal.dev.',
+      dashboardUrl: 'https://dashboard.acme-internal.dev.',
+    };
+    expect((await resolver(settings, prodEnv)()).status).toBe('ready');
+  });
+
   it('refuses a placeholder exchange credential even when it is long enough', async () => {
     const env = {
       ...prodEnv,
