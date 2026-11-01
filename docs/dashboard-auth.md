@@ -207,13 +207,26 @@ ever logged.
 
 | Setting | Non-local environments | Local development |
 | --- | --- | --- |
-| `dashboardUrl`, `issuer` | `https` only; no `localhost`, loopback, IP literal or reserved `.test`/`.local`/`.internal`/`.invalid` host; no credentials, query or fragment | `https`, or `http` on loopback only; no credentials, query or fragment |
+| `dashboardUrl`, `issuer` | `https` only; the host must be a public DNS name: not `localhost`, loopback or any IP literal, not a single-label name (`intranet`), not a reserved or non-public name (`.test`, `.localhost`, `.local`, `.internal`, `.invalid`, `.lan`, `home.arpa`); no credentials, query or fragment | `https`, or `http` on loopback only; no credentials, query or fragment |
 | `audience` | non-empty, no whitespace | same |
 | Any of the above and `DASHBOARD_EXCHANGE_SECRET(_PREVIOUS)` | no template placeholder (`<...>`, `change-me`, `replace-with`, `your-domain`, `.invalid`, `example.com/org/net`) | same |
 
+Host normalisation: before any host check, **one trailing dot is removed** (`localhost.` is judged as
+`localhost`, `corp.lan.` as `corp.lan`), because the trailing-dot form names the same host. A second trailing
+dot or an empty label (`localhost..`, `a..b`) is malformed and reported as invalid. The same rules apply to
+both fields. Upper-case, IPv4 shorthand and hex or integer IPv4 forms are normalised by the URL parser first.
+A public name with one trailing dot (`https://dashboard.example-corp.dev.`) is therefore accepted, but give
+operators the canonical name without the dot: the callback URL is built from the configured value as written,
+and the dashboard compares browser origins exactly, so `host` and `host.` are different origins there.
+
+In local development the loopback check uses the same normalisation (`http://localhost.:5273` is allowed
+like `http://localhost:5273`), single-label and `.lan` hosts are allowed over https, and plain http to
+anything but loopback is still refused.
+
 Codes: `DASHBOARD_URL_INVALID`, `DASHBOARD_URL_NOT_HTTPS`, `DASHBOARD_URL_LOCAL_HOST`,
 `DASHBOARD_URL_PLACEHOLDER`, `ISSUER_INVALID`, `ISSUER_NOT_HTTPS`, `ISSUER_LOCAL_HOST`,
-`ISSUER_PLACEHOLDER`, `AUDIENCE_INVALID`, `EXCHANGE_SECRET_PLACEHOLDER`. Key and credential strength
+`ISSUER_PLACEHOLDER`, `AUDIENCE_INVALID`, `EXCHANGE_SECRET_PLACEHOLDER`. The `*_LOCAL_HOST` codes mean
+"not a public host": loopback, an IP literal, a single-label name or a reserved or non-public name. Key and credential strength
 checks are unchanged (Ed25519 only, 32-character minimum). Copying `librechat.example.yaml` unedited
 therefore cannot enable the issuer outside local development.
 
