@@ -41,6 +41,18 @@ export function classifyDashboardFailure(error: unknown): DashboardFailure {
   }
 }
 
+/**
+ * The dashboard's home page for a callback URL: `<dashboardUrl>/auth/callback` -> `<dashboardUrl>/`. With the
+ * same-origin deployment this is `/dashboard/` on the chat origin. Returns undefined for anything unsafe.
+ */
+export function dashboardHomeUrl(callbackUrl: unknown): string | undefined {
+  if (!isSafeDashboardCallbackUrl(callbackUrl)) {
+    return undefined;
+  }
+  const home = callbackUrl.replace(/\/auth\/callback$/, '/');
+  return home === callbackUrl ? undefined : home;
+}
+
 /** Only a clean https (or local http) callback may receive the code; anything else is not followed. */
 export function isSafeDashboardCallbackUrl(url: unknown): url is string {
   return typeof url === 'string' && isValidDashboardBaseUrl(url);

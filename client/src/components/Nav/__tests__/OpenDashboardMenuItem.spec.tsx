@@ -58,6 +58,35 @@ function renderItem() {
 describe('OpenDashboardMenuItem', () => {
   beforeEach(() => jest.clearAllMocks());
 
+  it('is a real link to the dashboard home, same-origin /dashboard/ included', () => {
+    const { rerender } = renderItem();
+    expect(screen.getByRole('menuitem', { name: 'com_ui_dashboard_open' })).toHaveAttribute(
+      'href',
+      'https://dash.example.test/',
+    );
+    rerender(
+      <Menu.MenuProvider open>
+        <Menu.Menu>
+          <OpenDashboardMenuItem callbackUrl="https://chat.staging.example.test/dashboard/auth/callback" />
+        </Menu.Menu>
+      </Menu.MenuProvider>,
+    );
+    expect(screen.getByRole('menuitem', { name: 'com_ui_dashboard_open' })).toHaveAttribute(
+      'href',
+      'https://chat.staging.example.test/dashboard/',
+    );
+  });
+
+  it.each([{ ctrlKey: true }, { metaKey: true }, { shiftKey: true }, { button: 1 }])(
+    'follows the link without requesting a code for a modified click %j',
+    (init) => {
+      renderItem();
+      fireEvent.click(screen.getByRole('menuitem', { name: 'com_ui_dashboard_open' }), init);
+      expect(mockRequestDashboardCode).not.toHaveBeenCalled();
+      expect(mockNavigateTo).not.toHaveBeenCalled();
+    },
+  );
+
   it('labels the action and redirects with the one-time code on success', async () => {
     mockRequestDashboardCode.mockResolvedValue({ code: 'one-time-code-value', expires_in: 60 });
     renderItem();
