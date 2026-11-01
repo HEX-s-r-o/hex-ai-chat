@@ -1,11 +1,12 @@
 import { resolveDashboardEntry } from './entry';
 
-const base = { enabled: true, dashboardUrl: 'https://dash.example.test/' };
+/** A public https host is valid in every environment, so these cases do not depend on the ambient NODE_ENV (CI runs with NODE_ENV=CI). */
+const base = { enabled: true, dashboardUrl: 'https://dashboard.acme-internal.dev/' };
 
 describe('resolveDashboardEntry', () => {
   it('returns the callback URL for an eligible user and normalises the trailing slash', () => {
     expect(resolveDashboardEntry(base, { tenantId: 't1' })).toEqual({
-      callbackUrl: 'https://dash.example.test/auth/callback',
+      callbackUrl: 'https://dashboard.acme-internal.dev/auth/callback',
     });
   });
 
@@ -71,4 +72,34 @@ describe('resolveDashboardEntry honours the settings validator', () => {
       callbackUrl: 'http://localhost:5273/auth/callback',
     });
   });
+});
+
+describe('resolveDashboardEntry does not depend on the ambient NODE_ENV', () => {
+  const user = { tenantId: 't1' };
+
+  it.each(['production', 'CI', 'staging', 'development', 'test', undefined])(
+    'advertises a production-valid configuration when NODE_ENV is %p',
+    (nodeEnv) => {
+      const env = { NODE_ENV: nodeEnv } as NodeJS.ProcessEnv;
+      expect(resolveDashboardEntry(base, user, undefined, env)).toEqual({
+        callbackUrl: 'https://dashboard.acme-internal.dev/auth/callback',
+      });
+    },
+  );
+
+  it.each([
+    ['production', false],
+    ['CI', false],
+    ['staging', false],
+    [undefined, false],
+    ['development', true],
+    ['test', true],
+  ])(
+    'a reserved .test host is advertised only in local development (NODE_ENV=%p -> %p)',
+    (nodeEnv, advertised) => {
+      const env = { NODE_ENV: nodeEnv } as NodeJS.ProcessEnv;
+      const settings = { enabled: true, dashboardUrl: 'https://dash.example.test' };
+      expect(resolveDashboardEntry(settings, user, undefined, env) !== undefined).toBe(advertised);
+    },
+  );
 });
