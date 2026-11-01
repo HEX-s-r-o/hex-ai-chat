@@ -311,7 +311,8 @@ describe('GET /api/config', () => {
 
   describe('authenticated (req.user exists)', () => {
     describe('dashboard entry', () => {
-      const dashboardAuth = { enabled: true, dashboardUrl: 'https://dash.example.test' };
+      // A public https host is valid in every environment; CI runs with NODE_ENV=CI, not 'test'.
+      const dashboardAuth = { enabled: true, dashboardUrl: 'https://dashboard.acme-internal.dev' };
 
       it('advertises only the callback URL to an eligible signed-in user', async () => {
         mockGetAppConfig.mockResolvedValue({
@@ -323,7 +324,7 @@ describe('GET /api/config', () => {
         const response = await request(app).get('/api/config');
 
         expect(response.body.dashboard).toEqual({
-          callbackUrl: 'https://dash.example.test/auth/callback',
+          callbackUrl: 'https://dashboard.acme-internal.dev/auth/callback',
         });
         expect(JSON.stringify(response.body)).not.toContain('expectedTenantId');
       });

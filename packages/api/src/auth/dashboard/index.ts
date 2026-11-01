@@ -6,3 +6,5 @@ export * from './routes';
 export * from './service';
 export * from './token';
 export * from './entry';
+export * from './validate';
+export * from './rumSafeguard';

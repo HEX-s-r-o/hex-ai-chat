@@ -16,6 +16,7 @@ const {
   resolveCodeEnvironmentMoveCapabilities,
   resolveCodeEnvironmentTransitionVersion,
   resolveDashboardEntry,
+  applyDashboardRumSafeguard,
 } = require('@librechat/api');
 const { EModelEndpoint, defaultSocialLogins } = require('librechat-data-provider');
 const { logger, getTenantId, SystemCapabilities } = require('@librechat/data-schemas');
@@ -211,15 +212,30 @@ function buildCloudFrontStartupConfig() {
   };
 }
 
+let warnedDashboardRumOverride = false;
+
+/** Dashboard one-time codes must never reach observability tooling; see applyDashboardRumSafeguard. */
+function safeguardRum(rum, appConfig) {
+  const result = applyDashboardRumSafeguard(rum, appConfig?.config?.dashboardAuth);
+  if (result.overridden && !warnedDashboardRumOverride) {
+    warnedDashboardRumOverride = true;
+    logger.warn(
+      '[config] RUM advanced network capture disabled: dashboardAuth is enabled and the one-time code travels in a response body',
+    );
+  }
+  return result.rum;
+}
+
 router.get('/', async function (req, res) {
   try {
     const preLoginPayload = buildPreLoginPayload();
     const publicSharePayload = buildPublicSharePayload();
-    const rum = getRumConfig();
+    const rawRum = getRumConfig();
 
     if (!req.user) {
       const tenantId = getTenantId();
       const baseConfig = await getAppConfig(tenantId ? { tenantId } : { baseOnly: true });
+      const rum = safeguardRum(rawRum, baseConfig);
 
       /** @type {Partial<TStartupConfig>} */
       const payload = {
@@ -253,6 +269,7 @@ router.get('/', async function (req, res) {
     }
 
     const appConfig = await getAppConfig(getAppConfigOptionsFromUser(req.user));
+    const rum = safeguardRum(rawRum, appConfig);
     const codeEnvironmentDecisionVersion = resolveCodeEnvironmentDecisionVersion(
       process.env.CODE_ENVIRONMENT_DECISION_VERSION,
     );
