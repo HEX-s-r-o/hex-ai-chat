@@ -193,3 +193,40 @@ only in a local variable: not in React state, a query cache, storage, logs or an
 while a request is pending is ignored. Failures stay on the page with a localized message by status:
 401 sign in again, 403 no access, 404/503 unavailable, 429 wait and retry, no response network error,
 anything else a generic retry message.
+
+## Settings validation (fail closed)
+
+When `dashboardAuth.enabled` is `true`, the settings are validated before the issuer is built and before
+the "Open dashboard" entry is advertised. A problem makes the issuer **unavailable** (every route answers
+`503 DASHBOARD_AUTH_UNAVAILABLE`, nothing is issued, no entry is shown) and logs reason codes only
+(`[dashboardAuth] disabled by invalid configuration`, for example `DASHBOARD_URL_NOT_HTTPS`). No value is
+ever logged.
+
+"Local development" means `NODE_ENV` is `development` or `test`. **Any other value, including an unset
+`NODE_ENV`, is non-local**, so a missing variable can only make validation stricter.
+
+| Setting | Non-local environments | Local development |
+| --- | --- | --- |
+| `dashboardUrl`, `issuer` | `https` only; no `localhost`, loopback, IP literal or reserved `.test`/`.local`/`.internal`/`.invalid` host; no credentials, query or fragment | `https`, or `http` on loopback only; no credentials, query or fragment |
+| `audience` | non-empty, no whitespace | same |
+| Any of the above and `DASHBOARD_EXCHANGE_SECRET(_PREVIOUS)` | no template placeholder (`<...>`, `change-me`, `replace-with`, `your-domain`, `.invalid`, `example.com/org/net`) | same |
+
+Codes: `DASHBOARD_URL_INVALID`, `DASHBOARD_URL_NOT_HTTPS`, `DASHBOARD_URL_LOCAL_HOST`,
+`DASHBOARD_URL_PLACEHOLDER`, `ISSUER_INVALID`, `ISSUER_NOT_HTTPS`, `ISSUER_LOCAL_HOST`,
+`ISSUER_PLACEHOLDER`, `AUDIENCE_INVALID`, `EXCHANGE_SECRET_PLACEHOLDER`. Key and credential strength
+checks are unchanged (Ed25519 only, 32-character minimum). Copying `librechat.example.yaml` unedited
+therefore cannot enable the issuer outside local development.
+
+## Observability safeguard for the one-time code
+
+The code is returned in the body of `POST /api/auth/dashboard/code`. The browser RUM SDK's
+`advancedNetworkCapture` records request and response bodies for every fetch/XHR and has no per-URL
+exclusion, so while `dashboardAuth.enabled` is `true` the server forces
+`rum.advancedNetworkCapture = false` in **every** `/api/config` response (signed out and signed in; the SDK
+initialises once, possibly on the login page, and never re-reads its options). The operator's
+`RUM_ADVANCED_NETWORK_CAPTURE=true` is overridden and a single warning is logged. All other RUM options,
+including console capture, are unchanged because the dashboard code path never writes to the console.
+
+Residual risk: a deployment that enables the issuer only through a per-tenant config override, with
+advanced capture on globally, can serve the login page with capture enabled before the override is known.
+Keep `RUM_ADVANCED_NETWORK_CAPTURE` off (its default) wherever the issuer may be enabled.
