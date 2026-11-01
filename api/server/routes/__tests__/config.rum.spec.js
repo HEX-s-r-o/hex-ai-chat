@@ -199,3 +199,59 @@ describe('GET /api/config RUM config', () => {
     expect(response.body).not.toHaveProperty('rum');
   });
 });
+
+describe('GET /api/config RUM capture and the dashboard one-time code', () => {
+  const enableRum = () => {
+    process.env.RUM_ENABLED = 'true';
+    process.env.RUM_URL = 'https://rum.example.com';
+    process.env.RUM_PUBLIC_TOKEN = 'public-token';
+    process.env.RUM_ADVANCED_NETWORK_CAPTURE = 'true';
+  };
+
+  it.each([null, mockUser])(
+    'switches advanced network capture off when dashboardAuth is enabled (user: %p)',
+    async (user) => {
+      mockGetAppConfig.mockResolvedValue({
+        ...baseAppConfig,
+        config: { dashboardAuth: { enabled: true } },
+      });
+      enableRum();
+
+      const response = await request(createApp(user)).get('/api/config');
+
+      expect(response.status).toBe(200);
+      expect(response.body.rum).toMatchObject({ enabled: true, advancedNetworkCapture: false });
+    },
+  );
+
+  it.each([
+    ['dashboardAuth disabled', { dashboardAuth: { enabled: false } }],
+    ['dashboardAuth unset', undefined],
+  ])('leaves capture as the operator configured it when %s', async (_name, config) => {
+    mockGetAppConfig.mockResolvedValue({ ...baseAppConfig, ...(config ? { config } : {}) });
+    enableRum();
+
+    const response = await request(createApp(mockUser)).get('/api/config');
+
+    expect(response.body.rum.advancedNetworkCapture).toBe(true);
+  });
+
+  it('changes nothing else in the RUM payload', async () => {
+    mockGetAppConfig.mockResolvedValue({
+      ...baseAppConfig,
+      config: { dashboardAuth: { enabled: true } },
+    });
+    enableRum();
+    process.env.RUM_CONSOLE_CAPTURE = 'true';
+
+    const response = await request(createApp(null)).get('/api/config');
+
+    expect(response.body.rum).toMatchObject({
+      provider: 'hyperdx',
+      url: 'https://rum.example.com',
+      publicToken: 'public-token',
+      consoleCapture: true,
+      advancedNetworkCapture: false,
+    });
+  });
+});
