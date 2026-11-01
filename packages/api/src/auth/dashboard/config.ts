@@ -14,6 +14,7 @@ import type {
 } from './service';
 import { createDashboardCredentialVerifier, DashboardCredentialError } from './credential';
 import { loadDashboardKeyRing, DashboardKeyError } from './keys';
+import { validateDashboardAuthSettings } from './validate';
 import { createDashboardAuthService } from './service';
 import { isEnabled } from '~/utils/common';
 
@@ -83,6 +84,7 @@ export function createDashboardRuntimeResolver(
           env.DASHBOARD_EXCHANGE_SECRET,
           env.DASHBOARD_EXCHANGE_SECRET_PREVIOUS,
           env.TENANT_ISOLATION_STRICT,
+          env.NODE_ENV,
         ]),
       )
       .digest('hex');
@@ -98,6 +100,14 @@ export function createDashboardRuntimeResolver(
   function build(
     settings: NonNullable<NonNullable<AppConfig['config']>['dashboardAuth']>,
   ): DashboardRuntime {
+    /** Placeholder, plain-http, localhost or malformed settings outside local development: issue nothing. */
+    const problems = validateDashboardAuthSettings(settings, env);
+    if (problems.length > 0) {
+      logger.error('[dashboardAuth] disabled by invalid configuration', {
+        reason: problems.join(','),
+      });
+      return UNAVAILABLE_RUNTIME;
+    }
     try {
       if (!settings.issuer) {
         throw new Error('ISSUER_MISSING');

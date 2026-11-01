@@ -106,6 +106,7 @@ beforeEach(async () => {
     rateLimits: { exchangeRequestsPerMinute: 1000, codeRequestsPerFiveMinutes: 1000 },
   };
   env = {
+    NODE_ENV: 'test', // local development: see validate.spec.ts for the production rules
     DASHBOARD_JWT_KEYS: JSON.stringify({ 'kid-1': key.privatePem }),
     DASHBOARD_EXCHANGE_SECRET: SECRET,
   };

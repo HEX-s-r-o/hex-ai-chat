@@ -1,5 +1,6 @@
 import { buildDashboardCallbackUrl } from 'librechat-data-provider';
 import type { DashboardAuthConfig } from 'librechat-data-provider';
+import { validateDashboardAuthSettings } from './validate';
 
 export interface DashboardEntryUser {
   tenantId?: string | null;
@@ -15,8 +16,13 @@ export function resolveDashboardEntry(
   settings: Partial<DashboardAuthConfig> | undefined,
   user: DashboardEntryUser | undefined,
   authStrategy?: string,
+  env: NodeJS.ProcessEnv = process.env,
 ): { callbackUrl: string } | undefined {
   if (!settings?.enabled || !settings.dashboardUrl || !user) {
+    return undefined;
+  }
+  /** Never advertise a dashboard whose settings the issuer itself would refuse. */
+  if (validateDashboardAuthSettings(settings, env).length > 0) {
     return undefined;
   }
   if (authStrategy === 'openidJwt') {

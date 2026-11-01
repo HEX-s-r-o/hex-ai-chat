@@ -38,3 +38,37 @@ describe('resolveDashboardEntry', () => {
     expect(Object.keys(result ?? {})).toEqual(['callbackUrl']);
   });
 });
+
+describe('resolveDashboardEntry honours the settings validator', () => {
+  const prod = { NODE_ENV: 'production' } as NodeJS.ProcessEnv;
+  const valid = {
+    enabled: true,
+    dashboardUrl: 'https://dashboard.acme-internal.dev',
+    issuer: 'https://chat.acme-internal.dev',
+  };
+
+  it('advertises a valid production configuration', () => {
+    expect(resolveDashboardEntry(valid, { tenantId: 't1' }, undefined, prod)).toEqual({
+      callbackUrl: 'https://dashboard.acme-internal.dev/auth/callback',
+    });
+  });
+
+  it.each([
+    ['plain http', { dashboardUrl: 'http://dashboard.acme-internal.dev' }],
+    ['localhost', { dashboardUrl: 'http://localhost:5273' }],
+    ['placeholder', { dashboardUrl: 'https://dashboard.example.com' }],
+    ['placeholder issuer', { issuer: 'https://chat.example.com' }],
+  ])('advertises nothing for %s outside local development', (_n, override) => {
+    expect(
+      resolveDashboardEntry({ ...valid, ...override }, { tenantId: 't1' }, undefined, prod),
+    ).toBeUndefined();
+  });
+
+  it('still allows loopback http in local development', () => {
+    const settings = { enabled: true, dashboardUrl: 'http://localhost:5273' };
+    const dev = { NODE_ENV: 'development' } as NodeJS.ProcessEnv;
+    expect(resolveDashboardEntry(settings, { tenantId: 't1' }, undefined, dev)).toEqual({
+      callbackUrl: 'http://localhost:5273/auth/callback',
+    });
+  });
+});

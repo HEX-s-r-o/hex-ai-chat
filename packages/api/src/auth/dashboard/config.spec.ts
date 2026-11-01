@@ -25,6 +25,8 @@ function resolver(
 }
 
 const goodEnv = {
+  /** These tests run as local development: https `.test` hosts are fine here (validate.spec.ts covers production). */
+  NODE_ENV: 'test',
   DASHBOARD_JWT_KEYS: JSON.stringify({ 'kid-1': key.privatePem }),
   DASHBOARD_JWT_KID: 'kid-1',
   DASHBOARD_EXCHANGE_SECRET: SECRET,
@@ -101,5 +103,93 @@ describe('createDashboardRuntimeResolver', () => {
     expect(rotated.status === 'ready' && rotated.verifyCredential(`Bearer ${'t'.repeat(48)}`)).toBe(
       true,
     );
+  });
+});
+
+describe('fail-closed settings validation', () => {
+  const prodEnv = { ...goodEnv, NODE_ENV: 'production' };
+  const prodSettings = {
+    enabled: true,
+    issuer: 'https://chat.acme-internal.dev',
+    dashboardUrl: 'https://dashboard.acme-internal.dev',
+    audience: 'hex-dashboard',
+  };
+  beforeEach(() => jest.clearAllMocks());
+
+  it('is ready with a valid production configuration', async () => {
+    expect((await resolver(prodSettings, prodEnv)()).status).toBe('ready');
+  });
+
+  it.each([
+    [
+      'plain-http dashboardUrl',
+      { dashboardUrl: 'http://dashboard.acme-internal.dev' },
+      'DASHBOARD_URL_NOT_HTTPS',
+    ],
+    ['localhost dashboardUrl', { dashboardUrl: 'https://localhost' }, 'DASHBOARD_URL_LOCAL_HOST'],
+    [
+      'placeholder dashboardUrl',
+      { dashboardUrl: 'https://dashboard.example.com' },
+      'DASHBOARD_URL_PLACEHOLDER',
+    ],
+    ['http issuer', { issuer: 'http://chat.acme-internal.dev' }, 'ISSUER_NOT_HTTPS'],
+    ['placeholder issuer', { issuer: 'https://chat.example.com' }, 'ISSUER_PLACEHOLDER'],
+  ])(
+    'issues nothing with a %s, even with valid keys and credential',
+    async (_n, override, code) => {
+      expect((await resolver({ ...prodSettings, ...override }, prodEnv)()).status).toBe(
+        'unavailable',
+      );
+      expect(logger.error).toHaveBeenCalledWith(
+        '[dashboardAuth] disabled by invalid configuration',
+        {
+          reason: expect.stringContaining(code),
+        },
+      );
+    },
+  );
+
+  it('refuses a placeholder exchange credential even when it is long enough', async () => {
+    const env = {
+      ...prodEnv,
+      DASHBOARD_EXCHANGE_SECRET: 'change-me-to-at-least-32-random-characters',
+    };
+    expect((await resolver(prodSettings, env)()).status).toBe('unavailable');
+  });
+
+  it('applies the strict rules when NODE_ENV is unset, and relaxes only for development and test', async () => {
+    const { NODE_ENV: _omit, ...unset } = goodEnv;
+    const local = {
+      ...prodSettings,
+      dashboardUrl: 'http://127.0.0.1:5273',
+      issuer: 'http://127.0.0.1:3080',
+    };
+    expect((await resolver(local, unset)()).status).toBe('unavailable');
+    expect((await resolver(local, { ...goodEnv, NODE_ENV: 'development' })()).status).toBe('ready');
+    expect((await resolver(local, { ...goodEnv, NODE_ENV: 'production' })()).status).toBe(
+      'unavailable',
+    );
+  });
+
+  it('logs reason codes only, never a configured value', async () => {
+    await resolver(
+      { ...prodSettings, dashboardUrl: 'https://user:LEAKYPASSWORD@localhost/x' },
+      prodEnv,
+    )();
+    const logged = JSON.stringify((logger.error as jest.Mock).mock.calls);
+    expect(logged).not.toMatch(/LEAKYPASSWORD|localhost/);
+  });
+
+  it('re-validates when NODE_ENV changes (it is part of the cached configuration)', async () => {
+    const env = { ...goodEnv, NODE_ENV: 'development' } as Record<string, string | undefined>;
+    const local = {
+      ...prodSettings,
+      dashboardUrl: 'http://127.0.0.1:5273',
+      issuer: 'http://127.0.0.1:3080',
+    };
+    const resolve = resolver(local, env);
+    expect((await resolve()).status).toBe('ready');
+    env.NODE_ENV = 'production';
+    expect((await resolve()).status).toBe('unavailable');
   });
 });
