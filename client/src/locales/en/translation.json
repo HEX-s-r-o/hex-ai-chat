@@ -1382,7 +1382,7 @@
   "com_ui_dashboard_error_session": "Your session has expired. Sign in again, then open the dashboard.",
   "com_ui_dashboard_error_unavailable": "Dashboard sign-in is not available right now. Try again later or contact an administrator.",
   "com_ui_dashboard_error_unknown": "Something went wrong opening the dashboard. Try again.",
-  "com_ui_dashboard_open": "Open dashboard",
+  "com_ui_dashboard_open": "Dashboard",
   "com_ui_dashboard_opening": "Opening dashboard…",
   "com_ui_data_table": "Data table",
   "com_ui_data_table_scroll_area": "Scrollable data table area",

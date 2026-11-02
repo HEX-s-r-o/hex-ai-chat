@@ -186,7 +186,8 @@ With `dashboardAuth.enabled: true` and `dashboardAuth.dashboardUrl` set (https, 
 credentials, query or fragment; never defaulted), `GET /api/config` returns `dashboard.callbackUrl`
 (`<dashboardUrl>/auth/callback`) to a signed-in user the issuer would serve. It is omitted when the
 issuer is disabled or has no URL, for OpenID-reuse sessions, and when `expectedTenantId` does not match
-the user. The account menu then shows **Open dashboard**.
+the user. The account menu then shows **Dashboard**, a real link to the dashboard home (`<dashboardUrl>/`).
+A plain click signs in first (one-time code, then the callback); a modified click (new tab) follows the link without requesting a code.
 
 Choosing it calls `requestDashboardCode()` and navigates to `<callbackUrl>?code=<code>`. The code exists
 only in a local variable: not in React state, a query cache, storage, logs or analytics. A second click
@@ -243,3 +244,20 @@ including console capture, are unchanged because the dashboard code path never w
 Residual risk: a deployment that enables the issuer only through a per-tenant config override, with
 advanced capture on globally, can serve the login page with capture enabled before the override is known.
 Keep `RUM_ADVANCED_NETWORK_CAPTURE` off (its default) wherever the issuer may be enabled.
+
+## Same-origin deployment (alpha target: the existing hostname)
+
+There is no new hostname: the dashboard is a native section of this app on the host where it already runs (published through the existing tunnel), not a separate domain: chat at `https://<existing-chat-hostname>/`,
+dashboard UI at `/dashboard/`, dashboard API at `/dashboard/api/` (it never uses chat's `/api/`). Configure:
+
+```yaml
+dashboardAuth:
+  enabled: false            # stays false until the owner opens the staging window
+  issuer: https://<existing-chat-hostname>
+  dashboardUrl: https://<existing-chat-hostname>/dashboard   # callback becomes /dashboard/auth/callback
+```
+
+The reverse proxy sends `/dashboard/api/` to the dashboard API, `/dashboard/` to its static build and everything else
+here (see the dashboard repository's `docs/implementation/STATIC-BUILD-AND-HEADERS.md`). The dashboard's session
+cookie is `__Host-` (Secure, host-locked, `Path=/`), so the browser also sends it to this app's paths; nothing here
+reads or logs it. Keep request logs query-free: the callback URL briefly carries the one-time code.
