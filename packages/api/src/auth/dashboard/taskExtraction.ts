@@ -57,7 +57,7 @@ const calendarDay = z.string().refine((v) => {
   );
 }, 'not a real date');
 
-export const TaskProposalSchema = z
+const TaskProposalSchema: z.ZodType<TaskProposal, z.ZodTypeDef, unknown> = z
   .object({
     title: oneLine(200).refine((v) => v.length > 0, 'title is required'),
     description: multiLine(2000),
@@ -76,7 +76,26 @@ export const TaskProposalSchema = z
   )
   .transform((p) => ({ ...p, missing: [...new Set(p.missing)] }));
 
-export type TaskProposal = z.output<typeof TaskProposalSchema>;
+export interface TaskProposal {
+  title: string;
+  description: string;
+  client: string | null;
+  owner: string | null;
+  /** YYYY-MM-DD */
+  deadline: string | null;
+  deadlineSource: 'client' | 'internal' | 'order' | null;
+  orderRef: string | null;
+  missing: ProposalField[];
+  confidence: 'low' | 'medium' | 'high';
+}
+
+/** Strict check of an untrusted proposal (the schema itself stays private so the declaration build needs no inferred types). */
+export function parseTaskProposal(
+  value: unknown,
+): { success: true; data: TaskProposal } | { success: false } {
+  const parsed = TaskProposalSchema.safeParse(value);
+  return parsed.success ? { success: true, data: parsed.data } : { success: false };
+}
 
 export type ExtractionFailure = 'provider_unavailable' | 'provider_error' | 'bad_output';
 export type ExtractionResult =
@@ -120,7 +139,7 @@ export function parseModelJson(raw: string): unknown {
 }
 
 export function validateModelOutput(raw: string): ExtractionResult {
-  const parsed = TaskProposalSchema.safeParse(parseModelJson(raw));
+  const parsed = parseTaskProposal(parseModelJson(raw));
   return parsed.success ? { ok: true, proposal: parsed.data } : { ok: false, reason: 'bad_output' };
 }
 

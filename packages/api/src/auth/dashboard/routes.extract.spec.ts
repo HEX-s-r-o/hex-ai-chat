@@ -149,7 +149,9 @@ describe('POST /api/auth/dashboard/extract-task', () => {
 
     it('is off when dashboardAuth itself is disabled', async () => {
       settings.enabled = false;
-      await post(buildApp(), good).expect(404);
+      const res = await post(buildApp(), good).expect(404);
+      expect(providerCalls).toHaveLength(0);
+      expect(res.body.code).toBe(DashboardAuthErrorCode.Disabled);
     });
   });
 
@@ -261,13 +263,16 @@ describe('POST /api/auth/dashboard/extract-task', () => {
       const app = buildApp();
       for (let i = 0; i < 3; i++) await post(app, good).expect(200);
       await post(app, good).expect(429);
-      await post(app, { ...good, tenant_id: 'tenant-b' }).expect(200);
+      const other = await post(app, { ...good, tenant_id: 'tenant-b' }).expect(200);
+      expect(other.body.proposal.title).toBe(proposal.title);
     });
 
     it('does not let an unauthenticated caller spend a tenant budget', async () => {
       const app = buildApp();
       for (let i = 0; i < 6; i++) await post(app, good, 'Bearer wrong').expect(401);
-      await post(app, good).expect(200);
+      const res = await post(app, good).expect(200);
+      expect(res.body.proposal.title).toBe(proposal.title);
+      expect(providerCalls).toHaveLength(1);
     });
   });
 

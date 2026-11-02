@@ -1,5 +1,5 @@
 import {
-  TaskProposalSchema,
+  parseTaskProposal,
   buildEndpoint,
   buildUserMessage,
   extractTaskProposal,
@@ -25,9 +25,9 @@ const valid = {
   confidence: 'medium',
 };
 
-describe('TaskProposalSchema', () => {
+describe('parseTaskProposal', () => {
   it('accepts a complete proposal', () => {
-    expect(TaskProposalSchema.parse(valid)).toEqual(valid);
+    expect((parseTaskProposal(valid) as { data: unknown }).data).toEqual(valid);
   });
 
   it('accepts nulls for everything the text did not state', () => {
@@ -39,15 +39,17 @@ describe('TaskProposalSchema', () => {
       orderRef: null,
       missing: ['client', 'deadline', 'owner'],
     };
-    expect(TaskProposalSchema.safeParse(sparse).success).toBe(true);
+    expect(parseTaskProposal(sparse).success).toBe(true);
   });
 
   it('trims values and removes duplicate missing markers', () => {
-    const parsed = TaskProposalSchema.parse({
-      ...valid,
-      title: '  Padded  ',
-      missing: ['owner', 'owner', 'client'],
-    });
+    const parsed = (
+      parseTaskProposal({
+        ...valid,
+        title: '  Padded  ',
+        missing: ['owner', 'owner', 'client'],
+      }) as { data: { title: string; missing: string[] } }
+    ).data;
     expect(parsed.title).toBe('Padded');
     expect(parsed.missing).toEqual(['owner', 'client']);
   });
@@ -84,7 +86,7 @@ describe('TaskProposalSchema', () => {
     ['an array', [valid]],
     ['null', null],
   ])('refuses %s', (_name, value) => {
-    expect(TaskProposalSchema.safeParse(value).success).toBe(false);
+    expect(parseTaskProposal(value).success).toBe(false);
   });
 });
 
