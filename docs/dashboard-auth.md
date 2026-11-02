@@ -245,16 +245,16 @@ Residual risk: a deployment that enables the issuer only through a per-tenant co
 advanced capture on globally, can serve the login page with capture enabled before the override is known.
 Keep `RUM_ADVANCED_NETWORK_CAPTURE` off (its default) wherever the issuer may be enabled.
 
-## Same-origin deployment (staging target)
+## Same-origin deployment (alpha target: the existing hostname)
 
-The dashboard is a native section of this app, not a separate domain: chat at `https://chat.staging.<your-domain>/`,
+There is no new hostname: the dashboard is a native section of this app on the host where it already runs (published through the existing tunnel), not a separate domain: chat at `https://<existing-chat-hostname>/`,
 dashboard UI at `/dashboard/`, dashboard API at `/dashboard/api/` (it never uses chat's `/api/`). Configure:
 
 ```yaml
 dashboardAuth:
   enabled: false            # stays false until the owner opens the staging window
-  issuer: https://chat.staging.<your-domain>
-  dashboardUrl: https://chat.staging.<your-domain>/dashboard   # callback becomes /dashboard/auth/callback
+  issuer: https://<existing-chat-hostname>
+  dashboardUrl: https://<existing-chat-hostname>/dashboard   # callback becomes /dashboard/auth/callback
 ```
 
 The reverse proxy sends `/dashboard/api/` to the dashboard API, `/dashboard/` to its static build and everything else
