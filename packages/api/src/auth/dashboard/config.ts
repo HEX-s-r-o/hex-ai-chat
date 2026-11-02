@@ -12,8 +12,10 @@ import type {
   DashboardServiceConfig,
   DashboardUser,
 } from './service';
+import type { FetchLike, TaskExtractionRuntime } from './taskExtraction';
 import { createDashboardCredentialVerifier, DashboardCredentialError } from './credential';
 import { loadDashboardKeyRing, DashboardKeyError } from './keys';
+import { createTaskExtractionRuntime } from './taskExtraction';
 import { validateDashboardAuthSettings } from './validate';
 import { createDashboardAuthService } from './service';
 import { isEnabled } from '~/utils/common';
@@ -31,6 +33,8 @@ export type DashboardRuntime =
       service: DashboardAuthService;
       verifyCredential: (authorizationHeader: unknown) => boolean;
       limits: DashboardRateLimits;
+      /** LLM task drafting: absent when off, `unavailable` when switched on but incomplete. */
+      taskExtraction?: TaskExtractionRuntime | 'unavailable';
     };
 
 export interface DashboardRuntimeDeps {
@@ -40,6 +44,8 @@ export interface DashboardRuntimeDeps {
   findUserById: (userId: string) => Promise<DashboardUser | null>;
   env?: NodeJS.ProcessEnv;
   now?: () => Date;
+  /** HTTP client for the language-model provider; tests inject a fake. */
+  fetch?: FetchLike;
 }
 
 const DEFAULT_LIMITS: DashboardRateLimits = {
@@ -83,6 +89,10 @@ export function createDashboardRuntimeResolver(
           env.DASHBOARD_JWT_KID,
           env.DASHBOARD_EXCHANGE_SECRET,
           env.DASHBOARD_EXCHANGE_SECRET_PREVIOUS,
+          env.ANTHROPIC_API_KEY,
+          env.OPENAI_API_KEY,
+          env.ANTHROPIC_REVERSE_PROXY,
+          env.OPENAI_REVERSE_PROXY,
           env.TENANT_ISOLATION_STRICT,
           env.NODE_ENV,
         ]),
@@ -141,6 +151,10 @@ export function createDashboardRuntimeResolver(
         }),
         verifyCredential,
         limits: { ...DEFAULT_LIMITS, ...settings.rateLimits },
+        taskExtraction: createTaskExtractionRuntime(settings.taskExtraction, {
+          env,
+          fetch: deps.fetch,
+        }),
       };
     } catch (error) {
       let reason = 'UNEXPECTED';

@@ -17,6 +17,9 @@ const STATUS: Record<DashboardAuthErrorCode, number> = {
   [DashboardAuthErrorCode.CodeInvalid]: 400,
   [DashboardAuthErrorCode.PrincipalForbidden]: 403,
   [DashboardAuthErrorCode.RateLimited]: 429,
+  [DashboardAuthErrorCode.InputTooLarge]: 413,
+  [DashboardAuthErrorCode.ExtractionUnavailable]: 503,
+  [DashboardAuthErrorCode.ExtractionFailed]: 502,
   [DashboardAuthErrorCode.TenantRequired]: 403,
   [DashboardAuthErrorCode.Internal]: 500,
 };
@@ -30,6 +33,9 @@ const MESSAGE: Record<DashboardAuthErrorCode, string> = {
   [DashboardAuthErrorCode.CodeInvalid]: 'Code is invalid or expired.',
   [DashboardAuthErrorCode.PrincipalForbidden]: 'Access to the dashboard is not permitted.',
   [DashboardAuthErrorCode.RateLimited]: 'Too many requests. Try again later.',
+  [DashboardAuthErrorCode.InputTooLarge]: 'The text is too long.',
+  [DashboardAuthErrorCode.ExtractionUnavailable]: 'Task drafting is unavailable.',
+  [DashboardAuthErrorCode.ExtractionFailed]: 'No valid task proposal could be produced.',
   [DashboardAuthErrorCode.TenantRequired]: 'A tenant is required for dashboard access.',
   [DashboardAuthErrorCode.Internal]: 'Dashboard authentication failed.',
 };
@@ -192,6 +198,90 @@ export function createDashboardAuthRouter(options: DashboardRouterOptions): Rout
         expires_in: result.value.expiresIn,
         session_handle: result.value.sessionHandle,
       });
+    }),
+  );
+
+  /** Per-tenant budget for task drafting. The tenant comes from the dashboard backend, which authenticated it. */
+  const byBodyTenant = (req: Request): string => {
+    const tenant = (req.body as { tenant_id?: unknown } | undefined)?.tenant_id;
+    return typeof tenant === 'string' && tenant.length > 0 && tenant.length <= 128
+      ? tenant
+      : 'unknown';
+  };
+  const extractLimiter = rateLimit({
+    windowMs: 5 * 60 * 1000,
+    max: (_req, res) => {
+      const extraction = runtimeOf(res).taskExtraction;
+      return typeof extraction === 'object' ? extraction.requestsPerFiveMinutes : 1;
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: byBodyTenant,
+    handler: (_req, res) => sendError(res, DashboardAuthErrorCode.RateLimited),
+    store: options.limiterStore?.('dashboard_extract_tenant_limiter'),
+    validate: { keyGeneratorIpFallback: false },
+  });
+
+  /**
+   * Server-to-server: the dashboard backend asks for a DRAFT task proposal from free text. Only the backend
+   * credential opens this route; the provider key never leaves this process; the answer is a validated proposal
+   * or a fixed error. The text and the model's answer are never logged.
+   */
+  router.post(
+    '/extract-task',
+    gate,
+    exchangeLimiter,
+    requireExchangeCredential,
+    guarded(async (req, res, runtime) => {
+      const extraction = runtime.taskExtraction;
+      if (extraction === undefined) {
+        return sendError(res, DashboardAuthErrorCode.Disabled);
+      }
+      if (extraction === 'unavailable') {
+        return sendError(res, DashboardAuthErrorCode.ExtractionUnavailable);
+      }
+      const body = req.body as { text?: unknown; tenant_id?: unknown } | undefined;
+      const keys = body != null && typeof body === 'object' ? Object.keys(body) : [];
+      if (
+        body == null ||
+        typeof body !== 'object' ||
+        keys.some((k) => k !== 'text' && k !== 'tenant_id') ||
+        typeof body.text !== 'string' ||
+        typeof body.tenant_id !== 'string' ||
+        body.tenant_id.length === 0 ||
+        body.tenant_id.length > 128
+      ) {
+        return sendError(res, DashboardAuthErrorCode.BadRequest);
+      }
+      const text = body.text.trim();
+      if (text.length === 0) {
+        return sendError(res, DashboardAuthErrorCode.BadRequest);
+      }
+      if (text.length > extraction.maxInputChars) {
+        return sendError(res, DashboardAuthErrorCode.InputTooLarge);
+      }
+      await new Promise<void>((next) => extractLimiter(req, res, () => next()));
+      if (res.headersSent) {
+        return;
+      }
+      const started = Date.now();
+      const result = await extraction.extract(text);
+      /** Metadata only: a reason code, the size of the input and the duration. */
+      logger.info('[dashboardAuth] task extraction', {
+        outcome: result.ok ? 'ok' : result.reason,
+        inputChars: text.length,
+        durationMs: Date.now() - started,
+      });
+      res.setHeader('Cache-Control', 'no-store');
+      if (!result.ok) {
+        return sendError(
+          res,
+          result.reason === 'bad_output' || result.reason === 'provider_error'
+            ? DashboardAuthErrorCode.ExtractionFailed
+            : DashboardAuthErrorCode.ExtractionUnavailable,
+        );
+      }
+      res.status(200).json({ proposal: result.proposal });
     }),
   );
 

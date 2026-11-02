@@ -31,6 +31,12 @@ export enum DashboardAuthErrorCode {
   PrincipalForbidden = 'DASHBOARD_PRINCIPAL_FORBIDDEN',
   /** Per-user or per-IP budget exhausted. */
   RateLimited = 'DASHBOARD_RATE_LIMITED',
+  /** Task-extraction input is longer than the configured cap. */
+  InputTooLarge = 'DASHBOARD_INPUT_TOO_LARGE',
+  /** The language-model provider could not be reached or refused; nothing derived from it is returned. */
+  ExtractionUnavailable = 'DASHBOARD_EXTRACTION_UNAVAILABLE',
+  /** The provider answered, but not with a valid task proposal. */
+  ExtractionFailed = 'DASHBOARD_EXTRACTION_FAILED',
   /** The chat user could not be given a tenant binding. */
   TenantRequired = 'DASHBOARD_TENANT_REQUIRED',
   /** Unexpected server failure; details are never exposed. */
@@ -152,6 +158,22 @@ export const dashboardAuthConfigSchema = z.object({
   expectedTenantId: z.string().min(1).optional(),
   /** Tenant value for deployments without tenant isolation. Ignored when TENANT_ISOLATION_STRICT. */
   singleTenantId: z.string().min(1).optional().default('legacy'),
+  /**
+   * LLM-assisted task drafting for the dashboard (off by default). Which existing server-side provider key to use
+   * and which model; the key itself is never configured here: it comes from the environment variable chat already
+   * uses for that provider (`ANTHROPIC_API_KEY` or `OPENAI_API_KEY`).
+   */
+  taskExtraction: z
+    .object({
+      enabled: z.boolean().optional().default(false),
+      provider: z.enum(['anthropic', 'openai']).optional(),
+      model: z.string().min(1).max(100).optional(),
+      maxInputChars: z.number().int().min(100).max(20000).optional().default(6000),
+      maxOutputTokens: z.number().int().min(100).max(2000).optional().default(800),
+      timeoutMs: z.number().int().min(1000).max(60000).optional().default(20000),
+      requestsPerFiveMinutes: z.number().int().min(1).max(100).optional().default(10),
+    })
+    .optional(),
   rateLimits: z
     .object({
       codeRequestsPerFiveMinutes: z.number().int().min(1).optional().default(10),
