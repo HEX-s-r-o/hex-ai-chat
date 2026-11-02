@@ -1,6 +1,9 @@
 const express = require('express');
 const {
   limiterCache,
+  createDashboardAuthRouter,
+  createDashboardUserLookup,
+  createDashboardRuntimeResolver,
   createSetBalanceConfig,
   requireTwoFactorSetupToken,
   createTwoFactorManagementLimiter,
@@ -40,7 +43,17 @@ const {
 } = require('~/server/controllers/auth/TwoFactorAuthController');
 const { logoutController } = require('~/server/controllers/auth/LogoutController');
 const { loginController } = require('~/server/controllers/auth/LoginController');
-const { findBalanceByUser, upsertBalanceFields } = require('~/models');
+const {
+  findBalanceByUser,
+  upsertBalanceFields,
+  getUserById,
+  createDashboardCode,
+  consumeDashboardCode,
+  findDashboardCode,
+  deletePendingDashboardCodes,
+  revokeDashboardHandle,
+  revokeDashboardHandleByCode,
+} = require('~/models');
 const { getAppConfig } = require('~/server/services/Config');
 const middleware = require('~/server/middleware');
 
@@ -63,6 +76,27 @@ const getCloudFrontAuthCookieRefreshResult = (req, res) => {
 
   return forceRefreshCloudFrontAuthCookies(req, res, req.user);
 };
+
+/** Dashboard token issuer (ADR-0006): disabled unless `dashboardAuth.enabled` is set. */
+router.use(
+  '/dashboard',
+  createDashboardAuthRouter({
+    getRuntime: createDashboardRuntimeResolver({
+      getAppConfig: () => getAppConfig({ baseOnly: true }),
+      findUserById: createDashboardUserLookup(getUserById),
+      store: {
+        createDashboardCode,
+        consumeDashboardCode,
+        findDashboardCode,
+        deletePendingDashboardCodes,
+        revokeDashboardHandle,
+        revokeDashboardHandleByCode,
+      },
+    }),
+    userMiddleware: [middleware.requireJwtAuth, middleware.checkBan],
+    limiterStore: limiterCache,
+  }),
+);
 
 const ldapAuth = !!process.env.LDAP_URL && !!process.env.LDAP_USER_SEARCH_BASE;
 //Local

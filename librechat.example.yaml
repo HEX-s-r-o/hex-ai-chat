@@ -513,6 +513,23 @@ registration:
 #     - 'localhost:8080'
 #     - '127.0.0.1:8080'
 
+# Dashboard token issuer (ADR-0006). Disabled by default. Keys and the dashboard backend
+# credential are secrets and are read only from the environment (DASHBOARD_JWT_KEYS,
+# DASHBOARD_EXCHANGE_SECRET); see .env.example and docs/dashboard-auth.md.
+# dashboardAuth:
+#   enabled: true
+#   issuer: 'https://chat.example.com'   # PLACEHOLDER: rejected outside local development. Exact `iss`; required, never defaulted
+#   audience: 'hex-dashboard'            # exact `aud`
+#   dashboardUrl: 'https://dashboard.example.com'  # PLACEHOLDER: rejected outside local development. Base URL that receives the code: https only (http on localhost when NODE_ENV is development or test). Enables the "Open dashboard" menu item
+#   activeKid: 'dash-2026-11'            # which key in DASHBOARD_JWT_KEYS signs (rotation switch)
+#   tokenTtlSeconds: 300                 # max 300
+#   codeTtlSeconds: 60                   # max 60
+#   expectedTenantId: 'tenant-a'         # optional: refuse codes for any other tenant
+#   singleTenantId: 'legacy'             # tenant value when tenant isolation is not in use
+#   rateLimits:
+#     codeRequestsPerFiveMinutes: 10     # per user
+#     exchangeRequestsPerMinute: 60      # per IP, before the credential is checked
+
 # rateLimits:
 #   # Per-user MCP App browser-route limits. Each limit uses a fixed one-minute window.
 #   mcpApps:

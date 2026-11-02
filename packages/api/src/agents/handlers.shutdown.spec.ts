@@ -115,6 +115,12 @@ const drainOptions = () => ({
 const interruptedOutput = `Error: [search_mcp_docs] tool call failed: ${BACKGROUND_TASK_SHUTDOWN_MESSAGE}`;
 
 describe('createToolExecuteHandler — background tasks at shutdown', () => {
+  /** Cold-loads (transpiles) the handler module graph once, outside any test's own timeout; the first test
+   *  to pay that cost used to time out intermittently. Instances stay per test (see loadModules). */
+  beforeAll(() => {
+    loadModules();
+  }, 60_000);
+
   it('interrupts a running tool and delivers the shutdown reason as its result', async () => {
     const { createToolExecuteHandler, registry } = loadModules();
     const adapter = completionAdapter();

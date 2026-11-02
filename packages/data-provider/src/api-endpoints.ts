@@ -627,6 +627,10 @@ export const passkeyRegistrationOptions = () => `${passkeys()}/register/options`
 export const passkeyRegistrationVerify = () => `${passkeys()}/register/verify`;
 export const passkeyLoginOptions = () => `${passkeys()}/login/options`;
 export const passkeyLoginVerify = () => `${passkeys()}/login/verify`;
+// Dashboard token issuer (ADR-0006). `token` and `revoke` are server-to-server (dashboard backend).
+export const dashboardCode = () => `${BASE_URL}/api/auth/dashboard/code`;
+export const dashboardToken = () => `${BASE_URL}/api/auth/dashboard/token`;
+export const dashboardRevoke = () => `${BASE_URL}/api/auth/dashboard/revoke`;
 
 /* Memories */
 export const memories = () => `${BASE_URL}/api/memories`;

@@ -389,6 +389,51 @@ describe('GET /api/config', () => {
       expect(anonymous.body).not.toHaveProperty('ragEnabled');
     });
 
+    describe('dashboard entry', () => {
+      // A public https host is valid in every environment; CI runs with NODE_ENV=CI, not 'test'.
+      const dashboardAuth = { enabled: true, dashboardUrl: 'https://dashboard.acme-internal.dev' };
+
+      it('advertises only the callback URL to an eligible signed-in user', async () => {
+        mockGetAppConfig.mockResolvedValue({
+          ...baseAppConfig,
+          config: { dashboardAuth: { ...dashboardAuth, expectedTenantId: 'secret-tenant' } },
+        });
+        const app = createApp({ ...mockUser, tenantId: 'secret-tenant' });
+
+        const response = await request(app).get('/api/config');
+
+        expect(response.body.dashboard).toEqual({
+          callbackUrl: 'https://dashboard.acme-internal.dev/auth/callback',
+        });
+        expect(JSON.stringify(response.body)).not.toContain('expectedTenantId');
+      });
+
+      it('omits it when the issuer is disabled or unconfigured', async () => {
+        for (const config of [
+          undefined,
+          { dashboardAuth: { ...dashboardAuth, enabled: false } },
+          { dashboardAuth: { enabled: true } },
+        ]) {
+          mockGetAppConfig.mockResolvedValue({ ...baseAppConfig, config });
+          const response = await request(createApp(mockUser)).get('/api/config');
+          expect(response.body).not.toHaveProperty('dashboard');
+        }
+      });
+
+      it('omits it for a user the issuer would refuse by tenant, and when signed out', async () => {
+        mockGetAppConfig.mockResolvedValue({
+          ...baseAppConfig,
+          config: { dashboardAuth: { ...dashboardAuth, expectedTenantId: 'tenant-a' } },
+        });
+        const wrongTenant = await request(createApp({ ...mockUser, tenantId: 'tenant-b' })).get(
+          '/api/config',
+        );
+        const signedOut = await request(createApp(null)).get('/api/config');
+        expect(wrongTenant.body).not.toHaveProperty('dashboard');
+        expect(signedOut.body).not.toHaveProperty('dashboard');
+      });
+    });
+
     it('should call getAppConfig with role, userId, and tenantId', async () => {
       mockGetAppConfig.mockResolvedValue(baseAppConfig);
       mockGetTenantId.mockReturnValue('fallback-tenant');

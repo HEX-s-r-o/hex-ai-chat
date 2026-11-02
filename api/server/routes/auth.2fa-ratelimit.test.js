@@ -29,6 +29,9 @@ jest.mock('@librechat/api', () => ({
     mockRequireTwoFactorSetupAcknowledgementToken(...args),
   requireTwoFactorSetupFinalizationToken: (...args) =>
     mockRequireTwoFactorSetupFinalizationToken(...args),
+  createDashboardAuthRouter: jest.fn(() => (req, res, next) => next()),
+  createDashboardRuntimeResolver: jest.fn(),
+  createDashboardUserLookup: jest.fn(),
   forceRefreshCloudFrontAuthCookies: jest.fn(),
   blockTwoFactorDisableWhenRequired: jest.fn((req, res, next) => next()),
 }));
