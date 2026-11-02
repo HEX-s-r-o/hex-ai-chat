@@ -8,3 +8,4 @@ export * from './token';
 export * from './entry';
 export * from './validate';
 export * from './rumSafeguard';
+export * from './taskExtraction';
