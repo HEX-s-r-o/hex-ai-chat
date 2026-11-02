@@ -261,3 +261,43 @@ The reverse proxy sends `/dashboard/api/` to the dashboard API, `/dashboard/` to
 here (see the dashboard repository's `docs/implementation/STATIC-BUILD-AND-HEADERS.md`). The dashboard's session
 cookie is `__Host-` (Secure, host-locked, `Path=/`), so the browser also sends it to this app's paths; nothing here
 reads or logs it. Keep request logs query-free: the callback URL briefly carries the one-time code.
+
+## LLM-assisted task drafting (dashboard, off by default)
+
+`POST /api/auth/dashboard/extract-task` lets the **dashboard backend** (never a browser) turn free text (a client
+message, an email excerpt, a meeting note, a short instruction) into one **draft task proposal**. Chat owns the provider
+call, so the provider key stays in this process.
+
+```yaml
+dashboardAuth:
+  taskExtraction:
+    enabled: false          # off by default; the endpoint answers 404 until switched on
+    provider: anthropic     # anthropic | openai: which existing server-side key to use
+    model: <model id>       # required when enabled
+    maxInputChars: 6000     # input cap (413 above it)
+    maxOutputTokens: 800
+    timeoutMs: 20000
+    requestsPerFiveMinutes: 10   # per tenant
+```
+
+**Provider configuration boundary.** No key appears in `librechat.yaml`. The key is read from the environment variable chat
+already uses for that provider: `ANTHROPIC_API_KEY` (optional `ANTHROPIC_REVERSE_PROXY`) or `OPENAI_API_KEY` (optional
+`OPENAI_REVERSE_PROXY`, an OpenAI-compatible base ending in `/v1`). A reverse-proxy base must be https (http only on
+loopback) and carry no credentials. The key is sent only in the outgoing request header; it is never in a response, a log
+line or an error. Without a key the endpoint answers 503.
+
+**Contract.** Authentication is the backend exchange credential (the same bearer as `/token`). Body: `{ "text": string,
+"tenant_id": string }` and nothing else (unknown keys are 400). Success: `{ "proposal": { title, description, client,
+owner, deadline (YYYY-MM-DD), deadlineSource (client|internal|order), orderRef, missing[], confidence } }`. The model's
+reply is parsed as JSON and checked against a strict schema: unknown keys, wrong types, bad enums, over-long values,
+control characters, impossible dates and a deadline source without a deadline are all refused (502 with a fixed message).
+There is no field for a tenant, status, `clientVisible`, rejection reason, hand-over time or task ID, so a model cannot
+set them. The text is placed between `<source>` tags as data with a fixed instruction not to follow it, and a closing tag
+inside it is defused.
+
+**Limits and failures.** Per-tenant budget (`requestsPerFiveMinutes`, 429 above it; the tenant comes from the
+authenticated backend, and unauthenticated calls cannot spend a budget); input cap 413; provider unreachable, overloaded or
+rate limiting: 503; provider rejecting the key or returning an invalid proposal: 502. Logs hold only an outcome code, the
+input length and the duration; never the text, a prompt, the model's output or a key.
+
+The result is a **proposal only**. Whether it becomes a task is decided by a person in the dashboard.
