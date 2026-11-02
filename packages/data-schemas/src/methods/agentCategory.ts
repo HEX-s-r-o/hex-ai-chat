@@ -5,6 +5,7 @@ import { tenantSafeBulkWrite } from '~/utils/tenantBulkWrite';
 export function createAgentCategoryMethods(mongoose: typeof import('mongoose')): {
   getActiveCategories: () => Promise<IAgentCategory[]>;
   getCategoriesWithCounts: () => Promise<(IAgentCategory & { agentCount: number })[]>;
+  getAllCategoriesWithCounts: () => Promise<(IAgentCategory & { agentCount: number })[]>;
   getValidCategoryValues: () => Promise<string[]>;
   seedCategories: (
     categories: Array<{
