@@ -1,5 +1,4 @@
 import { useState, memo, useRef } from 'react';
-import type { MouseEvent } from 'react';
 import { useSetRecoilState } from 'recoil';
 import * as Menu from '@ariakit/react/menu';
 import { GearIcon, DropdownMenuSeparator, Avatar } from '@librechat/client';
@@ -14,6 +13,7 @@ import {
   Scale,
   ShieldCheck,
 } from 'lucide-react';
+import type { MouseEvent } from 'react';
 import { ArchivedChatsModal } from '~/components/Nav/SettingsTabs/General/ArchivedChatsModal';
 import { useGetStartupConfig, useGetUserBalance } from '~/data-provider';
 import { useLocalize, useOpenDashboard } from '~/hooks';
