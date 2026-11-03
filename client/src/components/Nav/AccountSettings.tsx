@@ -18,12 +18,12 @@ import {
 import type { MouseEvent } from 'react';
 import { ArchivedChatsModal } from '~/components/Nav/SettingsTabs/General/ArchivedChatsModal';
 import { filesDialogTriggerAtom, showFilesDialogAtom } from '~/store/filesDialog';
+import { useLocalize, useOpenDashboard } from '~/hooks';
 import { useGetStartupConfig } from '~/data-provider';
 import { dashboardHomeUrl } from '~/utils/dashboard';
 import { useAuthContext } from '~/hooks/AuthContext';
 import { settingsOpenAtom } from './Settings';
 import { openInNewTab } from '~/utils';
-import { useLocalize, useOpenDashboard } from '~/hooks';
 import store from '~/store';
 
 function HelpSubmenu({
