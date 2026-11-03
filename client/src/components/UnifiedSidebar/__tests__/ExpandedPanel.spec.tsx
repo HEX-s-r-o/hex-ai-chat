@@ -80,6 +80,11 @@ jest.mock('~/components/Nav/AccountSettings', () => ({
   default: () => <div data-testid="account-settings" />,
 }));
 
+jest.mock('~/components/Nav/OpenDashboardButton', () => ({
+  __esModule: true,
+  default: () => <div data-testid="open-dashboard-button" />,
+}));
+
 import ExpandedPanel from '../ExpandedPanel';
 
 const createLinks = (): NavLink[] => [
@@ -195,6 +200,19 @@ describe('ExpandedPanel', () => {
 
       expect(onClick).toHaveBeenCalledTimes(1);
       expect(onNavigate).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('action area', () => {
+    it('places the dashboard button after the sidebar toggle and new chat', () => {
+      renderPanel({ expanded: true });
+      const toggle = screen.getByTestId('close-sidebar-button');
+      const newChat = screen.getByTestId('new-chat-button');
+      const dashboard = screen.getByTestId('open-dashboard-button');
+      const order = (a: Element, b: Element) =>
+        Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+      expect(order(toggle, newChat)).toBe(true);
+      expect(order(newChat, dashboard)).toBe(true);
     });
   });
 
