@@ -5,6 +5,7 @@ import { tenantSafeBulkWrite } from '~/utils/tenantBulkWrite';
 export function createAgentCategoryMethods(mongoose: typeof import('mongoose')): {
   getActiveCategories: () => Promise<IAgentCategory[]>;
   getCategoriesWithCounts: () => Promise<(IAgentCategory & { agentCount: number })[]>;
+  getAllCategoriesWithCounts: () => Promise<(IAgentCategory & { agentCount: number })[]>;
   getValidCategoryValues: () => Promise<string[]>;
   seedCategories: (
     categories: Array<{
@@ -64,7 +65,9 @@ export function createAgentCategoryMethods(mongoose: typeof import('mongoose')):
    * Get ALL categories (active and inactive) with agent counts
    * @returns Categories with agent counts, including inactive ones
    */
-  async function getAllCategoriesWithCounts(): Promise<(IAgentCategory & { agentCount: number })[]> {
+  async function getAllCategoriesWithCounts(): Promise<
+    (IAgentCategory & { agentCount: number })[]
+  > {
     const Agent = mongoose.models.Agent;
 
     const [categoryCounts, categories] = await Promise.all([
