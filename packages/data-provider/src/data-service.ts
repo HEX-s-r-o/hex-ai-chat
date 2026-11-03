@@ -8,6 +8,7 @@ import type {
 } from './types/traces';
 import type { TInsightsAccessResponse, TInsightsParams, TInsightsResponse } from './types/insights';
 import type { ScheduleMCPConsentView, ConfirmScheduleMCPConsent } from './types/scheduleConsent';
+import type { DashboardCodeResponse } from './dashboardAuth';
 import type { TFileConfig } from './file-config';
 import type * as tl from './types/tools';
 import type * as t from './types';
@@ -1765,6 +1766,11 @@ export function deletePasskey({
   password,
 }: t.TDeletePasskeyRequest): Promise<{ message: string }> {
   return request.deleteWithOptions(endpoints.passkey(passkeyId), { data: { password } });
+}
+
+/** Requests a single-use dashboard redemption code for the signed-in user (ADR-0006). */
+export function requestDashboardCode(): Promise<DashboardCodeResponse> {
+  return request.post(endpoints.dashboardCode());
 }
 
 /* Memories */

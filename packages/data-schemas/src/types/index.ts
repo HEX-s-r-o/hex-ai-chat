@@ -7,6 +7,7 @@ export * from './compaction';
 export * from './user';
 export * from './token';
 export * from './refreshTokenBridge';
+export * from './dashboardCode';
 export * from './openidRefreshFlight';
 export * from './convo';
 export * from './chatProject';

@@ -9,18 +9,21 @@ import {
   CircleHelp,
   Files,
   Keyboard,
+  LayoutDashboard,
   LifeBuoy,
   LogOut,
   Scale,
   ShieldCheck,
 } from 'lucide-react';
+import type { MouseEvent } from 'react';
 import { ArchivedChatsModal } from '~/components/Nav/SettingsTabs/General/ArchivedChatsModal';
 import { filesDialogTriggerAtom, showFilesDialogAtom } from '~/store/filesDialog';
+import { useLocalize, useOpenDashboard } from '~/hooks';
 import { useGetStartupConfig } from '~/data-provider';
+import { dashboardHomeUrl } from '~/utils/dashboard';
 import { useAuthContext } from '~/hooks/AuthContext';
 import { settingsOpenAtom } from './Settings';
 import { openInNewTab } from '~/utils';
-import { useLocalize } from '~/hooks';
 import store from '~/store';
 
 function HelpSubmenu({
@@ -94,6 +97,45 @@ function HelpSubmenu({
   );
 }
 
+/**
+ * The "Dashboard" navigation entry. Visible only when the server advertises a dashboard for this user
+ * (enabled, signed in, allowed tenant; see `dashboardAuth`). It is a real link to the dashboard's home
+ * (`/dashboard/` in the same-origin deployment), so it can be opened in a new tab or copied. A plain click
+ * signs in first: it requests a one-time code and goes to the dashboard callback with it. Modified clicks
+ * (new tab, window, download) follow the link as an ordinary navigation and never request a code.
+ */
+export function OpenDashboardMenuItem({ callbackUrl }: { callbackUrl: string }) {
+  const localize = useLocalize();
+  const { openDashboard, isOpening } = useOpenDashboard(callbackUrl);
+  const home = dashboardHomeUrl(callbackUrl);
+
+  return (
+    <Menu.MenuItem
+      // eslint-disable-next-line jsx-a11y/anchor-has-content -- Ariakit renders the item's children into this anchor
+      render={home != null ? <a href={home} /> : undefined}
+      onClick={(event: MouseEvent) => {
+        if (
+          event.button !== 0 ||
+          event.ctrlKey ||
+          event.metaKey ||
+          event.shiftKey ||
+          event.altKey
+        ) {
+          return;
+        }
+        event.preventDefault();
+        void openDashboard();
+      }}
+      disabled={isOpening}
+      className="select-item text-sm"
+      data-testid="nav-open-dashboard"
+    >
+      <LayoutDashboard className="icon-md" aria-hidden="true" />
+      {localize(isOpening ? 'com_ui_dashboard_opening' : 'com_ui_dashboard_open')}
+    </Menu.MenuItem>
+  );
+}
+
 function AccountSettings({ collapsed = false }: { collapsed?: boolean }) {
   const localize = useLocalize();
   const { user, logout } = useAuthContext();
@@ -149,6 +191,9 @@ function AccountSettings({ collapsed = false }: { collapsed?: boolean }) {
           privacyPolicyURL={startupConfig?.interface?.privacyPolicy?.externalUrl}
           onShowShortcuts={() => setShowShortcutsDialog(true)}
         />
+        {startupConfig?.dashboard?.callbackUrl != null && (
+          <OpenDashboardMenuItem callbackUrl={startupConfig.dashboard.callbackUrl} />
+        )}
         <Menu.MenuItem onClick={() => setShowArchived(true)} className="select-item text-sm">
           <Archive className="icon-md" aria-hidden="true" />
           {localize('com_nav_archived_chats')}
